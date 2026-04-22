@@ -78,6 +78,7 @@
 
     input[type="file"],
     input[type="text"],
+    input[type="number"],
     select,
     textarea {
       width: 100%;
@@ -151,8 +152,8 @@
     }
 
     button.small-btn {
-      padding: 6px 10px;
-      font-size: 13px;
+      padding: 6px 8px;
+      font-size: 12px;
     }
 
     button:disabled {
@@ -275,14 +276,19 @@
 
     .row-actions {
       display: flex;
-      flex-direction: row;
-      gap: 6px;
+      gap: 4px;
       flex-wrap: nowrap;
       align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      box-sizing: border-box;
+      overflow: hidden;
     }
 
     .row-actions .small-btn {
       white-space: nowrap;
+      flex: 0 0 auto;
+      max-width: 100%;
     }
 
     .utterance-input {
@@ -301,8 +307,7 @@
     .table-add-row {
       display: inline-block;
       border: 1px solid #cfdcff;
-      border-top-left-radius: 0;
-      border-top-right-radius: 0;
+      border-radius: 0 0 8px 8px;
       background: #eef4ff;
       color: #2d6cdf;
       font-weight: 600;
@@ -315,7 +320,8 @@
       font-family: Consolas, monospace;
     }
 
-    .speaker-blank {
+    .speaker-blank,
+    .pause-blank {
       border: none !important;
       background: transparent !important;
       box-shadow: none !important;
@@ -326,6 +332,22 @@
 
     .speaker-continuation {
       border-top: none !important;
+    }
+
+    .pause-duration-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pause-duration-label {
+      white-space: nowrap;
+      color: #444;
+      font-size: 14px;
+    }
+
+    .pause-row textarea {
+      display: none;
     }
 
     @media (max-width: 1200px) {
@@ -426,7 +448,7 @@
           <button id="playPauseBtn" type="button">Play / Pause</button>
           <button id="backBtn" type="button" class="secondary">Zurück</button>
           <button id="forwardBtn" type="button" class="secondary">Vor</button>
-          <button id="insertTimeBtn" type="button">Zeit in neue Zeile übernehmen</button>
+          <button id="insertTimeBtn" type="button">Zeit übernehmen</button>
 
           <div class="time-display" id="timeDisplay">00:00.0</div>
 
@@ -457,7 +479,7 @@
           Globale Shortcuts: <span class="mono">Shift + Leertaste</span> = Play/Pause,
           <span class="mono">Shift + ←</span> = zurück,
           <span class="mono">Shift + →</span> = vor,
-          <span class="mono">Shift + N</span> = neuer Sprecher.
+          <span class="mono">Shift + N</span> = Sprecherwechsel.
         </div>
       </div>
     </div>
@@ -475,7 +497,7 @@
               <th style="width: 120px;">Zeit</th>
               <th style="width: 190px;">Sprecher</th>
               <th>Äußerung</th>
-              <th style="width: 150px;">Aktionen</th>
+              <th style="width: 160px;">Aktionen</th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
@@ -483,8 +505,9 @@
       </div>
 
       <div class="table-add-row-wrap">
-        <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Fortsetzung</button>
         <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Sprecherwechsel</button>
+        <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Gleicher Sprecher</button>
+        <button id="addPauseBtn" type="button" class="table-add-row">+ Pause</button>
       </div>
     </div>
   </div>
@@ -521,6 +544,7 @@
     const exportCsvBtn = document.getElementById('exportCsvBtn');
     const addSameSpeakerBtn = document.getElementById('addSameSpeakerBtn');
     const addSpeakerChangeBtn = document.getElementById('addSpeakerChangeBtn');
+    const addPauseBtn = document.getElementById('addPauseBtn');
     const tableBody = document.getElementById('tableBody');
 
     let speakerPresets = ['Lehrkraft', 'Schüler 1', 'Schüler 2', 'Schüler 3', 'Schüler 4'];
@@ -539,6 +563,7 @@
     }
 
     function autoGrowTextarea(el) {
+      if (!el) return;
       el.style.height = '38px';
       el.style.height = Math.max(38, el.scrollHeight) + 'px';
     }
@@ -626,11 +651,28 @@
       });
     }
 
-    function createRow(time = '', speaker = '', utterance = '', blankSpeaker = false) {
+    function repairSpeakerBorders() {
+      const rows = Array.from(tableBody.querySelectorAll('tr'));
+      rows.forEach((row, index) => {
+        const speakerCell = row.children[1];
+        if (!speakerCell) return;
+        speakerCell.style.borderBottom = '';
+        speakerCell.classList.remove('speaker-continuation');
+        if (row.classList.contains('continuation-row')) {
+          speakerCell.classList.add('speaker-continuation');
+          const prev = rows[index - 1];
+          if (prev && prev.children[1]) {
+            prev.children[1].style.borderBottom = 'none';
+          }
+        }
+      });
+    }
+
+    function createStandardRow(time = '', speaker = '', utterance = '', blankSpeaker = false) {
       const tr = document.createElement('tr');
 
       const speakerCellContent = blankSpeaker
-        ? '<input type="text" class="speaker-blank" value="" readonly tabindex="-1" aria-label="Fortsetzung desselben Sprechers">'
+        ? '<div class="speaker-blank" aria-label="Gleicher Sprecher">&nbsp;</div>'
         : `<select class="speaker-select">${buildSpeakerOptions(speaker)}</select>`;
 
       tr.innerHTML = `
@@ -647,14 +689,6 @@
 
       if (blankSpeaker) {
         tr.classList.add('continuation-row');
-      }
-
-      const prevRow = tableBody.lastElementChild;
-      if (blankSpeaker && prevRow) {
-        const prevSpeakerCell = prevRow.children[1];
-        const currentSpeakerCell = tr.children[1];
-        prevSpeakerCell.style.borderBottom = 'none';
-        currentSpeakerCell.classList.add('speaker-continuation');
       }
 
       const select = tr.querySelector('.speaker-select');
@@ -679,46 +713,93 @@
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
-        const prev = tr.previousElementSibling;
-        const next = tr.nextElementSibling;
-        const wasContinuation = tr.classList.contains('continuation-row');
-
         tr.remove();
-
-        if (wasContinuation && prev && next && next.classList.contains('continuation-row')) {
-          prev.children[1].style.borderBottom = 'none';
-          next.children[1].classList.add('speaker-continuation');
-        } else if (prev && !next) {
-          prev.children[1].style.borderBottom = '';
-        } else if (prev && next && !next.classList.contains('continuation-row')) {
-          prev.children[1].style.borderBottom = '';
-        }
+        repairSpeakerBorders();
       });
 
       tableBody.appendChild(tr);
+      repairSpeakerBorders();
+      scrollTableToBottom();
+      return tr;
+    }
+
+    function createPauseRow(time = '', duration = '') {
+      const tr = document.createElement('tr');
+      tr.classList.add('pause-row');
+
+      tr.innerHTML = `
+        <td><input type="text" class="time-input" value="${escapeHtml(time)}"></td>
+        <td><div class="pause-blank" aria-label="Pause">&nbsp;</div></td>
+        <td>
+          <div class="pause-duration-wrap">
+            <span class="pause-duration-label">Dauer</span>
+            <input type="text" class="pause-duration-input" placeholder="z. B. 2.0s" value="${escapeHtml(duration)}">
+          </div>
+        </td>
+        <td>
+          <div class="row-actions">
+            <button type="button" class="small-btn use-time-btn">Aktuelle Zeit</button>
+            <button type="button" class="small-btn secondary delete-row-btn">Löschen</button>
+          </div>
+        </td>
+      `;
+
+      tr.querySelector('.use-time-btn').addEventListener('click', () => {
+        tr.querySelector('.time-input').value = formatTime(getCurrentTime());
+      });
+
+      tr.querySelector('.delete-row-btn').addEventListener('click', () => {
+        tr.remove();
+        repairSpeakerBorders();
+      });
+
+      tableBody.appendChild(tr);
+      repairSpeakerBorders();
       scrollTableToBottom();
       return tr;
     }
 
     function addRowSameSpeaker() {
-      const row = createRow(formatTime(getCurrentTime()), '', '', true);
+      const row = createStandardRow(formatTime(getCurrentTime()), '', '', true);
       row.querySelector('.utterance-input').focus();
-      scrollTableToBottom();
     }
 
     function addRowSpeakerChange() {
-      const row = createRow(formatTime(getCurrentTime()), '', '');
+      const row = createStandardRow(formatTime(getCurrentTime()), '', '');
       row.querySelector('.speaker-select').focus();
-      scrollTableToBottom();
+    }
+
+    function addPauseRow() {
+      const row = createPauseRow(formatTime(getCurrentTime()), '');
+      row.querySelector('.pause-duration-input').focus();
     }
 
     function getRowsData() {
       return Array.from(tableBody.querySelectorAll('tr')).map(row => {
-        const select = row.querySelector('.speaker-select');
+        const isPause = row.classList.contains('pause-row');
         const time = row.querySelector('.time-input').value.trim();
+
+        if (isPause) {
+          const duration = row.querySelector('.pause-duration-input').value.trim();
+          return {
+            type: 'pause',
+            time,
+            speaker: '',
+            utterance: '',
+            duration
+          };
+        }
+
+        const select = row.querySelector('.speaker-select');
         const utterance = row.querySelector('.utterance-input').value.trim();
         const speaker = select ? select.value.trim() : '';
-        return { time, speaker, utterance };
+        return {
+          type: 'speech',
+          time,
+          speaker,
+          utterance,
+          duration: ''
+        };
       });
     }
 
@@ -762,7 +843,12 @@
 
     function exportTxt() {
       const rows = getRowsData();
-      const lines = rows.map(r => `[${r.time}] ${r.speaker ? r.speaker + ': ' : ''}${r.utterance}`);
+      const lines = rows.map(r => {
+        if (r.type === 'pause') {
+          return `[${r.time}] Pause (Dauer: ${r.duration})`;
+        }
+        return `[${r.time}] ${r.speaker ? r.speaker + ': ' : ''}${r.utterance}`;
+      });
       const content = buildMetadataText() + lines.join('\n');
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
     }
@@ -779,12 +865,12 @@
         ['Transkribiert von', meta.author].map(escapeCsv).join(','),
         ['Sprecher', speakerPresets.join(' | ')].map(escapeCsv).join(','),
         '',
-        ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(','),
-        ...rows.map(r => [r.time, r.speaker, r.utterance].map(escapeCsv).join(','))
+        ['Typ', 'Zeit', 'Sprecher', 'Äußerung', 'Dauer'].map(escapeCsv).join(','),
+        ...rows.map(r => [r.type, r.time, r.speaker, r.utterance, r.duration].map(escapeCsv).join(','))
       ];
 
-      const bom = '\\uFEFF';
-      downloadFile(bom + lines.join('\\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+      const bom = '\uFEFF';
+      downloadFile(bom + lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
     }
 
     function getSkipAmount() {
@@ -817,9 +903,7 @@
     }
 
     function getCurrentTime() {
-      if (currentSource === 'local') {
-        return localVideo.currentTime || 0;
-      }
+      if (currentSource === 'local') return localVideo.currentTime || 0;
       if (currentSource === 'youtube' && youtubePlayer && youtubePlayer.getCurrentTime) {
         return youtubePlayer.getCurrentTime() || 0;
       }
@@ -966,7 +1050,7 @@
     forwardBtn.addEventListener('click', () => stepBy(getSkipAmount()));
 
     insertTimeBtn.addEventListener('click', () => {
-      const row = createRow(formatTime(getCurrentTime()), '', '');
+      const row = createStandardRow(formatTime(getCurrentTime()), '', '');
       row.querySelector('.speaker-select').focus();
     });
 
@@ -982,8 +1066,9 @@
       }
     });
 
-    addSameSpeakerBtn.addEventListener('click', addRowSameSpeaker);
     addSpeakerChangeBtn.addEventListener('click', addRowSpeakerChange);
+    addSameSpeakerBtn.addEventListener('click', addRowSameSpeaker);
+    addPauseBtn.addEventListener('click', addPauseRow);
 
     exportTxtBtn.addEventListener('click', exportTxt);
     exportCsvBtn.addEventListener('click', exportCsv);
@@ -1016,7 +1101,7 @@
     });
 
     renderSpeakerTags();
-    createRow('', 'Lehrkraft', '');
+    createStandardRow('', 'Lehrkraft', '');
   </script>
 </body>
 </html>
