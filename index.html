@@ -169,22 +169,17 @@
       line-height: 1.45;
     }
 
-    .time-display {
-      font-weight: bold;
-      color: #333;
-      min-width: 120px;
-      padding-bottom: 10px;
-    }
-
-    .video-block {
+    .video-panel {
       margin-top: 14px;
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(320px, 780px) 240px;
+      gap: 18px;
+      align-items: start;
       justify-content: center;
     }
 
     .video-shell {
       width: 100%;
-      max-width: 780px;
     }
 
     video,
@@ -214,7 +209,7 @@
       display: none !important;
     }
 
-    .sticky-controls {
+    .controls-side {
       position: sticky;
       top: 0;
       z-index: 20;
@@ -222,15 +217,44 @@
       border: 1px solid #ddd;
       border-radius: 12px;
       padding: 14px;
-      margin-top: 14px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
 
-    .inline-controls {
+    .controls-stack {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
       gap: 10px;
-      align-items: end;
+    }
+
+    .controls-stack button,
+    .controls-stack select,
+    .controls-stack .time-box {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .controls-stack select {
+      padding: 10px 12px;
+      border: 1px solid #bbb;
+      border-radius: 8px;
+      font-size: 15px;
+      background: #fff;
+      font-family: Arial, sans-serif;
+    }
+
+    .control-group label {
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .time-box {
+      border: 1px solid #bbb;
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #f8f8f8;
+      font-weight: bold;
+      color: #333;
+      text-align: center;
     }
 
     .top-actions {
@@ -339,10 +363,6 @@
       border: 1px solid transparent;
     }
 
-    .pause-row textarea {
-      display: none;
-    }
-
     @media (max-width: 1200px) {
       .metadata-grid {
         grid-template-columns: 1fr 1fr;
@@ -350,6 +370,14 @@
 
       .source-grid {
         grid-template-columns: 1fr;
+      }
+
+      .video-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .controls-side {
+        position: static;
       }
     }
 
@@ -427,52 +455,55 @@
 
       <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
 
-      <div class="video-block">
+      <div class="video-panel">
         <div class="video-shell">
           <video id="localVideo" controls></video>
           <div id="youtubeContainer">
             <div id="youtubePlayer"></div>
           </div>
         </div>
-      </div>
 
-      <div id="controlsCard" class="sticky-controls hidden">
-        <div class="inline-controls">
-          <button id="playPauseBtn" type="button">Play / Pause</button>
-          <button id="backBtn" type="button" class="secondary">Zurück</button>
-          <button id="forwardBtn" type="button" class="secondary">Vor</button>
-          <button id="insertTimeBtn" type="button">Zeit übernehmen</button>
+        <div id="controlsCard" class="controls-side hidden">
+          <div class="controls-stack">
+            <button id="playPauseBtn" type="button">Play / Pause</button>
+            <button id="backBtn" type="button" class="secondary">Zurück</button>
+            <button id="forwardBtn" type="button" class="secondary">Vor</button>
+            <button id="insertTimeBtn" type="button">Zeit übernehmen</button>
 
-          <div class="time-display" id="timeDisplay">00:00.0</div>
+            <div class="control-group">
+              <label>Aktuelle Zeit</label>
+              <div class="time-box" id="timeDisplay">00:00.0</div>
+            </div>
 
-          <div>
-            <label for="skipSelect" style="margin:0 0 4px 0; font-weight:normal;">Sprungweite</label>
-            <select id="skipSelect">
-              <option value="0.5">0,5 Sek</option>
-              <option value="1" selected>1 Sek</option>
-              <option value="2">2 Sek</option>
-              <option value="5">5 Sek</option>
-            </select>
+            <div class="control-group">
+              <label for="skipSelect">Sprungweite</label>
+              <select id="skipSelect">
+                <option value="0.5">0,5 Sek</option>
+                <option value="1" selected>1 Sek</option>
+                <option value="2">2 Sek</option>
+                <option value="5">5 Sek</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="speedSelect">Tempo</label>
+              <select id="speedSelect">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2.0x</option>
+              </select>
+            </div>
           </div>
 
-          <div>
-            <label for="speedSelect" style="margin:0 0 4px 0; font-weight:normal;">Tempo</label>
-            <select id="speedSelect">
-              <option value="0.5">0.5x</option>
-              <option value="0.75">0.75x</option>
-              <option value="1" selected>1.0x</option>
-              <option value="1.25">1.25x</option>
-              <option value="1.5">1.5x</option>
-              <option value="2">2.0x</option>
-            </select>
+          <div class="hint">
+            Globale Shortcuts: <span class="mono">Shift + Leertaste</span> = Play/Pause,
+            <span class="mono">Shift + ←</span> = zurück,
+            <span class="mono">Shift + →</span> = vor,
+            <span class="mono">Shift + N</span> = Sprecherwechsel.
           </div>
-        </div>
-
-        <div class="hint">
-          Globale Shortcuts: <span class="mono">Shift + Leertaste</span> = Play/Pause,
-          <span class="mono">Shift + ←</span> = zurück,
-          <span class="mono">Shift + →</span> = vor,
-          <span class="mono">Shift + N</span> = Sprecherwechsel.
         </div>
       </div>
     </div>
@@ -688,7 +719,7 @@
         const start = parseTimeToSeconds(row.querySelector('.time-input').value.trim());
         const pauseDisplay = row.querySelector('.pause-display');
         if (!pauseDisplay || start == null) {
-          if (pauseDisplay) pauseDisplay.textContent = 'Dauer:';
+          if (pauseDisplay) pauseDisplay.textContent = '';
           continue;
         }
 
@@ -702,9 +733,9 @@
         }
 
         if (nextTime == null || nextTime < start) {
-          pauseDisplay.textContent = 'Dauer:';
+          pauseDisplay.textContent = '';
         } else {
-          pauseDisplay.textContent = 'Dauer: ' + formatDuration(nextTime - start);
+          pauseDisplay.textContent = formatDuration(nextTime - start);
         }
       }
     }
@@ -783,7 +814,7 @@
       tr.innerHTML = `
         <td><input type="text" class="time-input" value="${escapeHtml(time)}"></td>
         <td><div class="pause-blank" aria-label="Pause">&nbsp;</div></td>
-        <td><div class="pause-display">Dauer:</div></td>
+        <td><div class="pause-display"></div></td>
         <td>
           <div class="row-actions">
             <button type="button" class="small-btn use-time-btn">Aktuelle Zeit</button>
@@ -840,7 +871,7 @@
         const time = row.querySelector('.time-input').value.trim();
 
         if (isPause) {
-          const display = row.querySelector('.pause-display')?.textContent?.trim() || 'Dauer:';
+          const display = row.querySelector('.pause-display')?.textContent?.trim() || '';
           return {
             type: 'pause',
             time,
@@ -919,9 +950,6 @@
       const rows = getRowsData();
       const meta = getMetadata();
 
-      const speakerHeader = ['Sprecher'];
-      const speakerValues = speakerPresets.length ? speakerPresets : [''];
-
       const lines = [
         ['Metadaten', 'Wert'].map(escapeCsv).join(';'),
         ['Videoname', meta.title].map(escapeCsv).join(';'),
@@ -929,8 +957,10 @@
         ['Quelle', meta.source].map(escapeCsv).join(';'),
         ['Transkribiert von', meta.author].map(escapeCsv).join(';'),
         '',
-        speakerHeader.concat(speakerPresets.map(() => '')).map(escapeCsv).join(';'),
-        ['Sprecher'].concat(speakerValues).map(escapeCsv).join(';'),
+        ['Sprecher']
+          .concat(speakerPresets)
+          .map(escapeCsv)
+          .join(';'),
         '',
         ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(';'),
         ...rows.map(r => [r.time, r.type === 'pause' ? 'Pause' : r.speaker, r.utterance].map(escapeCsv).join(';'))
