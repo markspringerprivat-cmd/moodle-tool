@@ -180,10 +180,21 @@
       padding-bottom: 10px;
     }
 
+    .video-block {
+      margin-top: 14px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .video-shell {
+      width: 100%;
+      max-width: 780px;
+    }
+
     video,
     #youtubeContainer {
       width: 100%;
-      max-height: 620px;
+      max-height: 440px;
       background: #000;
       border-radius: 12px;
     }
@@ -207,16 +218,23 @@
       display: none !important;
     }
 
+    .sticky-controls {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 14px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
     .inline-controls {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       align-items: end;
-      margin-top: 14px;
-    }
-
-    .video-block {
-      margin-top: 14px;
     }
 
     .top-actions {
@@ -226,11 +244,19 @@
       margin-top: 14px;
     }
 
+    .table-scroll-wrap {
+      max-height: 420px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 12px 12px 0 0;
+      margin-top: 12px;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 12px;
       table-layout: fixed;
+      margin: 0;
     }
 
     th, td {
@@ -242,6 +268,9 @@
     th {
       background: #f5f5f5;
       text-align: left;
+      position: sticky;
+      top: 0;
+      z-index: 5;
     }
 
     .row-actions {
@@ -264,7 +293,7 @@
     .table-add-row-wrap {
       display: flex;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 0;
       justify-content: flex-start;
       flex-wrap: wrap;
     }
@@ -272,7 +301,8 @@
     .table-add-row {
       display: inline-block;
       border: 1px solid #cfdcff;
-      border-radius: 8px;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
       background: #eef4ff;
       color: #2d6cdf;
       font-weight: 600;
@@ -311,6 +341,10 @@
     @media (max-width: 700px) {
       .metadata-grid {
         grid-template-columns: 1fr;
+      }
+
+      .table-add-row-wrap {
+        flex-direction: column;
       }
     }
   </style>
@@ -379,13 +413,15 @@
       <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
 
       <div class="video-block">
-        <video id="localVideo" controls></video>
-        <div id="youtubeContainer">
-          <div id="youtubePlayer"></div>
+        <div class="video-shell">
+          <video id="localVideo" controls></video>
+          <div id="youtubeContainer">
+            <div id="youtubePlayer"></div>
+          </div>
         </div>
       </div>
 
-      <div id="controlsCard" class="hidden">
+      <div id="controlsCard" class="sticky-controls hidden">
         <div class="inline-controls">
           <button id="playPauseBtn" type="button">Play / Pause</button>
           <button id="backBtn" type="button" class="secondary">Zurück</button>
@@ -432,17 +468,19 @@
         <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 120px;">Zeit</th>
-            <th style="width: 190px;">Sprecher</th>
-            <th>Äußerung</th>
-            <th style="width: 150px;">Aktionen</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
+      <div class="table-scroll-wrap" id="tableScrollWrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 120px;">Zeit</th>
+              <th style="width: 190px;">Sprecher</th>
+              <th>Äußerung</th>
+              <th style="width: 150px;">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
 
       <div class="table-add-row-wrap">
         <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Fortsetzung</button>
@@ -460,6 +498,7 @@
     const localVideo = document.getElementById('localVideo');
     const youtubeContainer = document.getElementById('youtubeContainer');
     const controlsCard = document.getElementById('controlsCard');
+    const tableScrollWrap = document.getElementById('tableScrollWrap');
 
     const playPauseBtn = document.getElementById('playPauseBtn');
     const backBtn = document.getElementById('backBtn');
@@ -502,6 +541,10 @@
     function autoGrowTextarea(el) {
       el.style.height = '38px';
       el.style.height = Math.max(38, el.scrollHeight) + 'px';
+    }
+
+    function scrollTableToBottom() {
+      tableScrollWrap.scrollTop = tableScrollWrap.scrollHeight;
     }
 
     function escapeCsv(value) {
@@ -653,17 +696,20 @@
       });
 
       tableBody.appendChild(tr);
+      scrollTableToBottom();
       return tr;
     }
 
     function addRowSameSpeaker() {
       const row = createRow(formatTime(getCurrentTime()), '', '', true);
       row.querySelector('.utterance-input').focus();
+      scrollTableToBottom();
     }
 
     function addRowSpeakerChange() {
       const row = createRow(formatTime(getCurrentTime()), '', '');
       row.querySelector('.speaker-select').focus();
+      scrollTableToBottom();
     }
 
     function getRowsData() {
@@ -737,8 +783,8 @@
         ...rows.map(r => [r.time, r.speaker, r.utterance].map(escapeCsv).join(','))
       ];
 
-      const bom = '\uFEFF';
-      downloadFile(bom + lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+      const bom = '\\uFEFF';
+      downloadFile(bom + lines.join('\\n'), 'transkript.csv', 'text/csv;charset=utf-8');
     }
 
     function getSkipAmount() {
