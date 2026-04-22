@@ -8,24 +8,24 @@
     html, body {
       margin: 0;
       padding: 0;
-      background: #ffffff !important;
+      width: 100%;
+      background: #ffffff;
       font-family: Arial, sans-serif;
     }
 
     body {
-      background: #ffffff !important;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      background: #ffffff;
     }
 
     .custom-app {
-      width: 100%;
-      max-width: 900px;
-      margin: 0 auto;
+      width: min(900px, 100%);
       padding: 40px 24px;
-      border: none !important;
-      border-radius: 0 !important;
-      background: #ffffff !important;
-      box-shadow: none !important;
+      margin: 0 auto;
       box-sizing: border-box;
+      background: #ffffff;
     }
 
     .custom-app h1 {
@@ -41,6 +41,7 @@
     .custom-app label {
       display: block;
       margin-bottom: 8px;
+      font-weight: bold;
     }
 
     .custom-app textarea {
@@ -77,7 +78,7 @@
     <h1>Hello World</h1>
     <p>Gib einen Text ein und lade ihn direkt als Datei herunter.</p>
 
-    <label for="meinText"><strong>Text eingeben:</strong></label>
+    <label for="meinText">Text eingeben:</label>
     <textarea id="meinText" rows="10" placeholder="Hier deinen Text eingeben..."></textarea>
 
     <div class="button-row">
