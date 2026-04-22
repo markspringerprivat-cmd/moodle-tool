@@ -21,43 +21,26 @@
     .app {
       width: 100%;
       max-width: none;
-      padding: 24px;
+      padding: 20px;
       box-sizing: border-box;
       margin: 0;
     }
 
     h1 {
       text-align: left;
-      margin-top: 0;
-      margin-bottom: 10px;
+      margin: 0 0 10px 0;
     }
 
     .intro {
       text-align: left;
       color: #444;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       line-height: 1.5;
-      max-width: 900px;
-    }
-
-    .main-layout {
-      display: grid;
-      grid-template-columns: minmax(380px, 0.78fr) minmax(760px, 1.22fr);
-      gap: 24px;
-      align-items: start;
-    }
-
-    .left-column,
-    .right-column {
-      min-width: 0;
+      max-width: 1200px;
     }
 
     .section {
-      margin-top: 20px;
-    }
-
-    .section:first-child {
-      margin-top: 0;
+      margin-top: 18px;
     }
 
     .card {
@@ -67,9 +50,15 @@
       background: #fff;
     }
 
+    .metadata-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
     .source-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr auto;
       gap: 12px;
       align-items: end;
     }
@@ -78,6 +67,7 @@
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
+      min-width: 0;
     }
 
     label {
@@ -106,93 +96,8 @@
       line-height: 1.4;
     }
 
-    .metadata-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
     .row {
       margin-top: 12px;
-    }
-
-    .inline-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: end;
-      margin-top: 14px;
-    }
-
-    button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      background: #2d6cdf;
-      color: white;
-      cursor: pointer;
-      font-size: 15px;
-    }
-
-    button.secondary {
-      background: #666;
-    }
-
-    button.small-btn {
-      padding: 6px 10px;
-      font-size: 13px;
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .time-display {
-      font-weight: bold;
-      color: #333;
-      min-width: 120px;
-      padding-bottom: 10px;
-    }
-
-    .hint {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #666;
-      line-height: 1.45;
-    }
-
-    .status {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #444;
-    }
-
-    video,
-    #youtubeContainer {
-      width: 100%;
-      max-height: 520px;
-      background: #000;
-      border-radius: 12px;
-    }
-
-    #youtubeContainer {
-      aspect-ratio: 16 / 9;
-      display: none;
-      overflow: hidden;
-    }
-
-    #youtubePlayer {
-      width: 100%;
-      height: 100%;
-    }
-
-    #localVideo {
-      display: none;
-    }
-
-    .hidden {
-      display: none !important;
     }
 
     .speaker-input-row {
@@ -230,6 +135,97 @@
       line-height: 1;
     }
 
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #2d6cdf;
+      color: white;
+      cursor: pointer;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    button.secondary {
+      background: #666;
+    }
+
+    button.small-btn {
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #444;
+    }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.45;
+    }
+
+    .time-display {
+      font-weight: bold;
+      color: #333;
+      min-width: 120px;
+      padding-bottom: 10px;
+    }
+
+    video,
+    #youtubeContainer {
+      width: 100%;
+      max-height: 620px;
+      background: #000;
+      border-radius: 12px;
+    }
+
+    #youtubeContainer {
+      aspect-ratio: 16 / 9;
+      display: none;
+      overflow: hidden;
+    }
+
+    #youtubePlayer {
+      width: 100%;
+      height: 100%;
+    }
+
+    #localVideo {
+      display: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .inline-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: end;
+      margin-top: 14px;
+    }
+
+    .video-block {
+      margin-top: 14px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -260,17 +256,6 @@
       white-space: nowrap;
     }
 
-    .top-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
-
-    .mono {
-      font-family: Consolas, monospace;
-    }
-
     .utterance-input {
       min-height: 38px;
       height: 38px;
@@ -297,12 +282,21 @@
       border-left: none;
     }
 
-    @media (max-width: 1100px) {
-      .main-layout {
-        grid-template-columns: 1fr;
+    .mono {
+      font-family: Consolas, monospace;
+    }
+
+    @media (max-width: 1200px) {
+      .metadata-grid {
+        grid-template-columns: 1fr 1fr;
       }
 
-      .source-grid,
+      .source-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
       .metadata-grid {
         grid-template-columns: 1fr;
       }
@@ -325,136 +319,131 @@
       Video laden oder YouTube-Link einfügen, fein navigieren und das Transkript Zeile für Zeile erfassen.
     </p>
 
-    <div class="main-layout">
-      <div class="left-column">
-        <div class="section card">
-          <div class="source-grid">
-            <div class="field-group">
-              <label for="videoInput">Lokale Videodatei</label>
-              <input id="videoInput" type="file" accept="video/*" />
-            </div>
+    <div class="section card">
+      <label>Metadaten</label>
+      <div class="metadata-grid">
+        <div>
+          <label for="metaTitle" style="font-weight:normal;">Videoname</label>
+          <input id="metaTitle" type="text" placeholder="z. B. Unterrichtsgespräch Klasse 7" />
+        </div>
+        <div>
+          <label for="metaLength" style="font-weight:normal;">Länge des Ausschnitts</label>
+          <input id="metaLength" type="text" placeholder="z. B. 03:25" />
+        </div>
+        <div>
+          <label for="metaSource" style="font-weight:normal;">Quelle</label>
+          <input id="metaSource" type="text" placeholder="z. B. Eigenes Video / YouTube-Link" />
+        </div>
+        <div>
+          <label for="metaAuthor" style="font-weight:normal;">Transkribiert von</label>
+          <input id="metaAuthor" type="text" placeholder="Name" />
+        </div>
+      </div>
+    </div>
 
-            <div class="field-group">
-              <label for="youtubeUrl">YouTube-Link</label>
-              <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
-            </div>
-          </div>
+    <div class="section card">
+      <label for="speakerInput">Sprecher hinzufügen</label>
+      <div class="speaker-input-row">
+        <input id="speakerInput" type="text" placeholder="z. B. Lehrkraft, Schüler 1, Schüler 2" />
+        <button id="addSpeakerBtn" type="button">+</button>
+      </div>
 
-          <div class="row">
-            <button id="loadSourceBtn" type="button">Video laden</button>
-          </div>
+      <div id="speakerTags" class="speaker-tags"></div>
 
-          <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
+      <div class="hint">
+        Erst Sprecher anlegen, dann unten in den Zeilen per Dropdown auswählen.
+      </div>
+    </div>
+
+    <div class="section card">
+      <div class="source-grid">
+        <div class="field-group">
+          <label for="videoInput">Lokale Videodatei</label>
+          <input id="videoInput" type="file" accept="video/*" />
         </div>
 
-        <div class="section">
-          <video id="localVideo" controls></video>
-          <div id="youtubeContainer">
-            <div id="youtubePlayer"></div>
-          </div>
+        <div class="field-group">
+          <label for="youtubeUrl">YouTube-Link</label>
+          <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
         </div>
 
-        <div id="controlsCard" class="section card hidden">
-          <div class="inline-controls">
-            <button id="playPauseBtn" type="button">Play / Pause</button>
-            <button id="backBtn" type="button" class="secondary">Zurück</button>
-            <button id="forwardBtn" type="button" class="secondary">Vor</button>
-            <button id="insertTimeBtn" type="button">Zeit in neue Zeile übernehmen</button>
-
-            <div class="time-display" id="timeDisplay">00:00.0</div>
-
-            <div>
-              <label for="skipSelect" style="margin:0 0 4px 0; font-weight:normal;">Sprungweite</label>
-              <select id="skipSelect">
-                <option value="0.5">0,5 Sek</option>
-                <option value="1" selected>1 Sek</option>
-                <option value="2">2 Sek</option>
-                <option value="5">5 Sek</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="speedSelect" style="margin:0 0 4px 0; font-weight:normal;">Tempo</label>
-              <select id="speedSelect">
-                <option value="0.5">0.5x</option>
-                <option value="0.75">0.75x</option>
-                <option value="1" selected>1.0x</option>
-                <option value="1.25">1.25x</option>
-                <option value="1.5">1.5x</option>
-                <option value="2">2.0x</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="hint">
-            Globale Shortcuts: <span class="mono">Shift + Leertaste</span> = Play/Pause,
-            <span class="mono">Shift + ←</span> = zurück,
-            <span class="mono">Shift + →</span> = vor,
-            <span class="mono">Shift + N</span> = Zeit in neue Zeile.
-          </div>
+        <div class="field-group">
+          <label style="visibility:hidden;">Aktion</label>
+          <button id="loadSourceBtn" type="button">Video laden</button>
         </div>
       </div>
 
-      <div class="right-column">
-        <div class="section card">
-          <label>Metadaten</label>
-          <div class="metadata-grid">
-            <div>
-              <label for="metaTitle" style="font-weight:normal;">Videoname</label>
-              <input id="metaTitle" type="text" placeholder="z. B. Unterrichtsgespräch Klasse 7" />
-            </div>
-            <div>
-              <label for="metaLength" style="font-weight:normal;">Länge des Ausschnitts</label>
-              <input id="metaLength" type="text" placeholder="z. B. 03:25" />
-            </div>
-            <div>
-              <label for="metaSource" style="font-weight:normal;">Quelle</label>
-              <input id="metaSource" type="text" placeholder="z. B. Eigenes Video / YouTube-Link" />
-            </div>
-            <div>
-              <label for="metaAuthor" style="font-weight:normal;">Transkribiert von</label>
-              <input id="metaAuthor" type="text" placeholder="Name" />
-            </div>
+      <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
+
+      <div class="video-block">
+        <video id="localVideo" controls></video>
+        <div id="youtubeContainer">
+          <div id="youtubePlayer"></div>
+        </div>
+      </div>
+
+      <div id="controlsCard" class="hidden">
+        <div class="inline-controls">
+          <button id="playPauseBtn" type="button">Play / Pause</button>
+          <button id="backBtn" type="button" class="secondary">Zurück</button>
+          <button id="forwardBtn" type="button" class="secondary">Vor</button>
+          <button id="insertTimeBtn" type="button">Zeit in neue Zeile übernehmen</button>
+
+          <div class="time-display" id="timeDisplay">00:00.0</div>
+
+          <div>
+            <label for="skipSelect" style="margin:0 0 4px 0; font-weight:normal;">Sprungweite</label>
+            <select id="skipSelect">
+              <option value="0.5">0,5 Sek</option>
+              <option value="1" selected>1 Sek</option>
+              <option value="2">2 Sek</option>
+              <option value="5">5 Sek</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="speedSelect" style="margin:0 0 4px 0; font-weight:normal;">Tempo</label>
+            <select id="speedSelect">
+              <option value="0.5">0.5x</option>
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1.0x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2.0x</option>
+            </select>
           </div>
         </div>
 
-        <div class="section card">
-          <label for="speakerInput">Sprecher hinzufügen</label>
-          <div class="speaker-input-row">
-            <input id="speakerInput" type="text" placeholder="z. B. Lehrkraft, Schüler 1, Schüler 2" />
-            <button id="addSpeakerBtn" type="button">+</button>
-          </div>
-
-          <div id="speakerTags" class="speaker-tags"></div>
-
-          <div class="hint">
-            Erst Sprecher anlegen, dann unten in den Zeilen per Dropdown auswählen.
-          </div>
+        <div class="hint">
+          Globale Shortcuts: <span class="mono">Shift + Leertaste</span> = Play/Pause,
+          <span class="mono">Shift + ←</span> = zurück,
+          <span class="mono">Shift + →</span> = vor,
+          <span class="mono">Shift + N</span> = Zeit in neue Zeile.
         </div>
+      </div>
+    </div>
 
-        <div class="section">
-          <div class="top-actions">
-            <button id="exportTxtBtn" type="button">Als TXT exportieren</button>
-            <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
-          </div>
+    <div class="section">
+      <div class="top-actions">
+        <button id="exportTxtBtn" type="button">Als TXT exportieren</button>
+        <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
+      </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 120px;">Zeit</th>
-                <th style="width: 190px;">Sprecher</th>
-                <th>Äußerung</th>
-                <th style="width: 150px;">Aktionen</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-          </table>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 120px;">Zeit</th>
+            <th style="width: 190px;">Sprecher</th>
+            <th>Äußerung</th>
+            <th style="width: 150px;">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
 
-          <div class="table-add-row-wrap">
-            <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Neue Zeile – gleicher Sprecher</button>
-            <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Neue Zeile – Sprecherwechsel</button>
-          </div>
-        </div>
+      <div class="table-add-row-wrap">
+        <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Neue Zeile – gleicher Sprecher</button>
+        <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Neue Zeile – Sprecherwechsel</button>
       </div>
     </div>
   </div>
@@ -639,15 +628,6 @@
       return tr;
     }
 
-    function getLastSpeaker() {
-      const rows = Array.from(tableBody.querySelectorAll('tr')).reverse();
-      for (const row of rows) {
-        const select = row.querySelector('.speaker-select');
-        if (select && select.value.trim()) return select.value.trim();
-      }
-      return '';
-    }
-
     function addRowSameSpeaker() {
       const row = createRow(formatTime(getCurrentTime()), '', '', true);
       row.querySelector('.utterance-input').focus();
@@ -659,30 +639,12 @@
     }
 
     function getRowsData() {
-      let currentSpeaker = '';
-
       return Array.from(tableBody.querySelectorAll('tr')).map(row => {
         const select = row.querySelector('.speaker-select');
-        const blank = row.querySelector('.speaker-blank');
         const time = row.querySelector('.time-input').value.trim();
         const utterance = row.querySelector('.utterance-input').value.trim();
-
-        let speaker = '';
-        let exportSpeaker = '';
-
-        if (select) {
-          speaker = select.value.trim();
-          currentSpeaker = speaker || currentSpeaker;
-          exportSpeaker = speaker;
-        } else if (blank) {
-          exportSpeaker = '';
-        }
-
-        return {
-          time,
-          speaker: exportSpeaker,
-          utterance
-        };
+        const speaker = select ? select.value.trim() : '';
+        return { time, speaker, utterance };
       });
     }
 
@@ -830,12 +792,8 @@
     function extractYoutubeId(url) {
       try {
         const parsed = new URL(url);
-        if (parsed.hostname.includes('youtu.be')) {
-          return parsed.pathname.slice(1);
-        }
-        if (parsed.hostname.includes('youtube.com')) {
-          return parsed.searchParams.get('v');
-        }
+        if (parsed.hostname.includes('youtu.be')) return parsed.pathname.slice(1);
+        if (parsed.hostname.includes('youtube.com')) return parsed.searchParams.get('v');
       } catch {}
       return null;
     }
@@ -875,10 +833,7 @@
       } else {
         youtubePlayer = new YT.Player('youtubePlayer', {
           videoId: id,
-          playerVars: {
-            rel: 0,
-            modestbranding: 1
-          },
+          playerVars: { rel: 0, modestbranding: 1 },
           events: {
             onReady: () => {
               setPlaybackRate(Number(speedSelect.value));
