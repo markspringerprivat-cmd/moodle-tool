@@ -263,27 +263,39 @@
 
     .table-add-row-wrap {
       display: flex;
-      gap: 0;
-      margin-top: -1px;
+      gap: 8px;
+      margin-top: 10px;
+      justify-content: flex-start;
+      flex-wrap: wrap;
     }
 
     .table-add-row {
-      display: block;
-      border: 1px solid #ddd;
-      border-top-left-radius: 0;
-      border-top-right-radius: 0;
+      display: inline-block;
+      border: 1px solid #cfdcff;
+      border-radius: 8px;
       background: #eef4ff;
       color: #2d6cdf;
-      font-weight: bold;
-      flex: 1;
-    }
-
-    .table-add-row + .table-add-row {
-      border-left: none;
+      font-weight: 600;
+      flex: 0 0 auto;
+      width: auto;
+      padding: 10px 14px;
     }
 
     .mono {
       font-family: Consolas, monospace;
+    }
+
+    .speaker-blank {
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      pointer-events: none;
+      color: transparent;
+      padding: 10px 0 !important;
+    }
+
+    .speaker-continuation {
+      border-top: none !important;
     }
 
     @media (max-width: 1200px) {
@@ -299,15 +311,6 @@
     @media (max-width: 700px) {
       .metadata-grid {
         grid-template-columns: 1fr;
-      }
-
-      .table-add-row-wrap {
-        flex-direction: column;
-      }
-
-      .table-add-row + .table-add-row {
-        border-left: 1px solid #ddd;
-        border-top: none;
       }
     }
   </style>
@@ -418,7 +421,7 @@
           Globale Shortcuts: <span class="mono">Shift + Leertaste</span> = Play/Pause,
           <span class="mono">Shift + ←</span> = zurück,
           <span class="mono">Shift + →</span> = vor,
-          <span class="mono">Shift + N</span> = Zeit in neue Zeile.
+          <span class="mono">Shift + N</span> = neuer Sprecher.
         </div>
       </div>
     </div>
@@ -442,8 +445,8 @@
       </table>
 
       <div class="table-add-row-wrap">
-        <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Neue Zeile – gleicher Sprecher</button>
-        <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Neue Zeile – Sprecherwechsel</button>
+        <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Fortsetzung</button>
+        <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Sprecherwechsel</button>
       </div>
     </div>
   </div>
@@ -584,7 +587,7 @@
       const tr = document.createElement('tr');
 
       const speakerCellContent = blankSpeaker
-        ? '<input type="text" class="speaker-blank" value="" readonly tabindex="-1" aria-label="Gleicher Sprecher" style="background:#f9f9f9; color:#777;">'
+        ? '<input type="text" class="speaker-blank" value="" readonly tabindex="-1" aria-label="Fortsetzung desselben Sprechers">'
         : `<select class="speaker-select">${buildSpeakerOptions(speaker)}</select>`;
 
       tr.innerHTML = `
@@ -598,6 +601,18 @@
           </div>
         </td>
       `;
+
+      if (blankSpeaker) {
+        tr.classList.add('continuation-row');
+      }
+
+      const prevRow = tableBody.lastElementChild;
+      if (blankSpeaker && prevRow) {
+        const prevSpeakerCell = prevRow.children[1];
+        const currentSpeakerCell = tr.children[1];
+        prevSpeakerCell.style.borderBottom = 'none';
+        currentSpeakerCell.classList.add('speaker-continuation');
+      }
 
       const select = tr.querySelector('.speaker-select');
       if (select) {
@@ -621,7 +636,20 @@
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
+        const prev = tr.previousElementSibling;
+        const next = tr.nextElementSibling;
+        const wasContinuation = tr.classList.contains('continuation-row');
+
         tr.remove();
+
+        if (wasContinuation && prev && next && next.classList.contains('continuation-row')) {
+          prev.children[1].style.borderBottom = 'none';
+          next.children[1].classList.add('speaker-continuation');
+        } else if (prev && !next) {
+          prev.children[1].style.borderBottom = '';
+        } else if (prev && next && !next.classList.contains('continuation-row')) {
+          prev.children[1].style.borderBottom = '';
+        }
       });
 
       tableBody.appendChild(tr);
