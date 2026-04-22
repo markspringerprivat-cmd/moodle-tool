@@ -265,16 +265,25 @@
       min-height: 160px;
     }
 
+    .table-add-row-wrap {
+      display: flex;
+      gap: 0;
+      margin-top: -1px;
+    }
+
     .table-add-row {
       display: block;
-      width: 100%;
-      margin-top: -1px;
+      border: 1px solid #ddd;
       border-top-left-radius: 0;
       border-top-right-radius: 0;
-      border: 1px solid #ddd;
       background: #eef4ff;
       color: #2d6cdf;
       font-weight: bold;
+      flex: 1;
+    }
+
+    .table-add-row + .table-add-row {
+      border-left: none;
     }
 
     @media (max-width: 1100px) {
@@ -285,6 +294,15 @@
       .source-grid,
       .metadata-grid {
         grid-template-columns: 1fr;
+      }
+
+      .table-add-row-wrap {
+        flex-direction: column;
+      }
+
+      .table-add-row + .table-add-row {
+        border-left: 1px solid #ddd;
+        border-top: none;
       }
     }
   </style>
@@ -421,7 +439,10 @@
             <tbody id="tableBody"></tbody>
           </table>
 
-          <button id="addRowBottomBtn" type="button" class="table-add-row">+ Neue Zeile hinzufügen</button>
+          <div class="table-add-row-wrap">
+            <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Neue Zeile – gleicher Sprecher</button>
+            <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Neue Zeile – Sprecherwechsel</button>
+          </div>
         </div>
       </div>
     </div>
@@ -456,7 +477,8 @@
 
     const exportTxtBtn = document.getElementById('exportTxtBtn');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
-    const addRowBottomBtn = document.getElementById('addRowBottomBtn');
+    const addSameSpeakerBtn = document.getElementById('addSameSpeakerBtn');
+    const addSpeakerChangeBtn = document.getElementById('addSpeakerChangeBtn');
     const tableBody = document.getElementById('tableBody');
 
     let speakerPresets = ['Lehrkraft', 'Schüler 1', 'Schüler 2', 'Schüler 3', 'Schüler 4'];
@@ -591,6 +613,23 @@
       return tr;
     }
 
+    function getLastSpeaker() {
+      const rows = tableBody.querySelectorAll('tr');
+      if (!rows.length) return '';
+      const lastRow = rows[rows.length - 1];
+      return lastRow.querySelector('.speaker-select').value.trim();
+    }
+
+    function addRowSameSpeaker() {
+      const row = createRow(formatTime(getCurrentTime()), getLastSpeaker(), '');
+      row.querySelector('.utterance-input').focus();
+    }
+
+    function addRowSpeakerChange() {
+      const row = createRow(formatTime(getCurrentTime()), '', '');
+      row.querySelector('.speaker-select').focus();
+    }
+
     function getRowsData() {
       return Array.from(tableBody.querySelectorAll('tr')).map(row => ({
         time: row.querySelector('.time-input').value.trim(),
@@ -610,11 +649,17 @@
 
     function buildMetadataText() {
       const meta = getMetadata();
+      const speakersLine = speakerPresets.length
+        ? `Sprecher: ${speakerPresets.join(', ')}`
+        : 'Sprecher:';
+
       return [
         `Videoname: ${meta.title}`,
         `Länge des Ausschnitts: ${meta.length}`,
         `Quelle: ${meta.source}`,
         `Transkribiert von: ${meta.author}`,
+        '',
+        speakersLine,
         ''
       ].join('\n');
     }
@@ -648,12 +693,14 @@
         ['Länge des Ausschnitts', meta.length].map(escapeCsv).join(','),
         ['Quelle', meta.source].map(escapeCsv).join(','),
         ['Transkribiert von', meta.author].map(escapeCsv).join(','),
+        ['Sprecher', speakerPresets.join(' | ')].map(escapeCsv).join(','),
         '',
         ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(','),
         ...rows.map(r => [r.time, r.speaker, r.utterance].map(escapeCsv).join(','))
       ];
 
-      downloadFile(lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+      const bom = '\uFEFF';
+      downloadFile(bom + lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
     }
 
     function getSkipAmount() {
@@ -858,10 +905,8 @@
       }
     });
 
-    addRowBottomBtn.addEventListener('click', () => {
-      const row = createRow('', '', '');
-      row.querySelector('.time-input').focus();
-    });
+    addSameSpeakerBtn.addEventListener('click', addRowSameSpeaker);
+    addSpeakerChangeBtn.addEventListener('click', addRowSpeakerChange);
 
     exportTxtBtn.addEventListener('click', exportTxt);
     exportCsvBtn.addEventListener('click', exportCsv);
@@ -889,8 +934,7 @@
         stepBy(getSkipAmount());
       } else if (event.code === 'KeyN') {
         event.preventDefault();
-        const row = createRow(formatTime(getCurrentTime()), '', '');
-        row.querySelector('.speaker-select').focus();
+        addRowSpeakerChange();
       }
     });
 
