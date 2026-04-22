@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello World Tool</title>
+  <title>KI-Responder</title>
   <style>
     html, body {
       margin: 0;
@@ -71,21 +71,143 @@
       background: #2d6cdf;
       color: white;
     }
+
+    .button-row button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status-box {
+      margin-top: 16px;
+      text-align: center;
+      color: #444444;
+      min-height: 24px;
+    }
+
+    .response-box {
+      margin-top: 24px;
+      padding: 16px;
+      border: 1px solid #dddddd;
+      border-radius: 8px;
+      background: #fafafa;
+      display: none;
+    }
+
+    .response-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .response-text {
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
   <div class="custom-app">
-    <h1>Hello World</h1>
-    <p>Gib einen Text ein und lade ihn direkt als Datei herunter.</p>
+    <h1>KI-Responder</h1>
+    <p>Gib einen Text ein und erhalte eine kurze Reaktion.</p>
 
     <label for="meinText">Text eingeben:</label>
     <textarea id="meinText" rows="10" placeholder="Hier deinen Text eingeben..."></textarea>
 
     <div class="button-row">
-      <button type="button" onclick="downloadTextDatei()">Text herunterladen</button>
+      <button id="sendBtn" type="button">Absenden</button>
+    </div>
+
+    <div id="status" class="status-box"></div>
+
+    <div id="responseBox" class="response-box">
+      <div class="response-title">Antwort</div>
+      <div id="responseText" class="response-text"></div>
     </div>
   </div>
 
-  <script src="download.js"></script>
+  <script type="module">
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.1.0';
+
+    // Modelle nur vom Hub laden, nicht lokal suchen
+    env.allowLocalModels = false;
+
+    const textInput = document.getElementById('meinText');
+    const sendBtn = document.getElementById('sendBtn');
+    const statusBox = document.getElementById('status');
+    const responseBox = document.getElementById('responseBox');
+    const responseText = document.getElementById('responseText');
+
+    let classifier = null;
+    let isLoading = false;
+
+    async function ladeModell() {
+      if (classifier) return classifier;
+      statusBox.textContent = 'KI-Modell wird geladen ... Das kann beim ersten Mal etwas dauern.';
+      classifier = await pipeline(
+        'sentiment-analysis',
+        'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
+      );
+      statusBox.textContent = 'KI ist bereit.';
+      return classifier;
+    }
+
+    function baueAntwort(label, score, originalText) {
+      const confidence = Math.round(score * 100);
+
+      if (label === 'POSITIVE') {
+        return `Die KI reagiert eher positiv auf deinen Text (${confidence}% Sicherheit).
+
+Kurze Rückmeldung:
+Dein Text wirkt insgesamt eher positiv oder konstruktiv. Wenn du willst, kannst du ihn noch präziser machen, damit die Aussage klarer wird.`;
+      }
+
+      return `Die KI reagiert eher kritisch oder negativ auf deinen Text (${confidence}% Sicherheit).
+
+Kurze Rückmeldung:
+Dein Text wirkt eher belastet, kritisch oder negativ gefärbt. Du könntest ihn sachlicher oder klarer formulieren, wenn er neutraler klingen soll.`;
+    }
+
+    sendBtn.addEventListener('click', async () => {
+      const input = textInput.value.trim();
+
+      if (!input) {
+        statusBox.textContent = 'Bitte gib zuerst einen Text ein.';
+        responseBox.style.display = 'none';
+        return;
+      }
+
+      if (isLoading) return;
+
+      try {
+        isLoading = true;
+        sendBtn.disabled = true;
+        statusBox.textContent = 'Text wird analysiert ...';
+        responseBox.style.display = 'none';
+
+        const pipe = await ladeModell();
+        const result = await pipe(input);
+
+        const top = Array.isArray(result) ? result[0] : result;
+        const antwort = baueAntwort(top.label, top.score, input);
+
+        responseText.textContent = antwort;
+        responseBox.style.display = 'block';
+        statusBox.textContent = 'Fertig.';
+      } catch (error) {
+        console.error(error);
+        statusBox.textContent = 'Fehler beim Laden oder Ausführen des Modells.';
+        responseText.textContent = 'Die Browser-KI konnte gerade nicht geladen werden. Bitte versuche es erneut.';
+        responseBox.style.display = 'block';
+      } finally {
+        isLoading = false;
+        sendBtn.disabled = false;
+      }
+    });
+
+    // Optional: Modell direkt beim Laden vorbereiten
+    ladeModell().catch((err) => {
+      console.error(err);
+      statusBox.textContent = 'Das KI-Modell konnte beim Start nicht vorgeladen werden.';
+    });
+  </script>
 </body>
 </html>
