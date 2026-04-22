@@ -167,45 +167,63 @@
       display: grid;
       grid-template-columns: minmax(320px, 780px) 260px;
       gap: 18px;
-      align-items: stretch;
+      align-items: start;
       justify-content: center;
+    }
+
+    .video-column {
+      width: 100%;
     }
 
     .video-shell {
       width: 100%;
-      display: flex;
-      align-items: stretch;
-      min-height: 460px;
+      min-height: 0;
+      display: none;
+    }
+
+    .video-shell.active {
+      display: block;
     }
 
     #localVideo,
     #youtubeContainer {
       width: 100%;
-      height: 100%;
-      min-height: 460px;
-      max-height: 460px;
       background: #000;
       border-radius: 12px;
       object-fit: contain;
+      display: none;
     }
 
-    #youtubeContainer {
+    #localVideo.active,
+    #youtubeContainer.active {
+      display: block;
+    }
+
+    #localVideo.video-mode {
+      height: 460px;
+      min-height: 460px;
+      max-height: 460px;
+    }
+
+    #localVideo.audio-only-local {
+      height: 56px;
+      min-height: 56px;
+      max-height: 56px;
+      background: #fff;
+      object-fit: initial;
+      border-radius: 10px;
+    }
+
+    #youtubeContainer.video-mode {
       aspect-ratio: 16 / 9;
-      display: none;
+      min-height: 460px;
+      max-height: 460px;
       overflow: hidden;
     }
 
     #youtubePlayer {
       width: 100%;
       height: 100%;
-    }
-
-    .audio-only-local {
-      min-height: 56px !important;
-      max-height: 56px !important;
-      height: 56px !important;
-      background: #fff !important;
-      object-fit: initial !important;
     }
 
     .hidden {
@@ -218,9 +236,13 @@
       border-radius: 12px;
       padding: 14px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-      display: flex;
+      display: none;
       flex-direction: column;
       justify-content: flex-start;
+    }
+
+    .controls-side.active {
+      display: flex;
     }
 
     .controls-stack {
@@ -236,7 +258,8 @@
       box-sizing: border-box;
     }
 
-    .controls-stack select {
+    .controls-stack select,
+    .controls-under-video select {
       padding: 10px 12px;
       border: 1px solid #bbb;
       border-radius: 8px;
@@ -261,11 +284,15 @@
     }
 
     .controls-under-video {
-      margin-top: 12px;
-      display: flex;
+      margin-top: 4px;
+      display: none;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       align-items: flex-end;
+    }
+
+    .controls-under-video.active {
+      display: flex;
     }
 
     .controls-under-video button,
@@ -400,13 +427,6 @@
       .video-panel {
         grid-template-columns: 1fr;
       }
-
-      .video-shell,
-      #localVideo,
-      #youtubeContainer {
-        min-height: auto;
-        max-height: 420px;
-      }
     }
 
     @media (max-width: 700px) {
@@ -418,7 +438,7 @@
         flex-direction: column;
       }
 
-      .controls-under-video {
+      .controls-under-video.active {
         flex-direction: column;
         align-items: stretch;
       }
@@ -493,15 +513,15 @@
       <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
 
       <div class="video-panel">
-        <div>
-          <div class="video-shell">
+        <div class="video-column">
+          <div id="videoShell" class="video-shell">
             <video id="localVideo" controls></video>
             <div id="youtubeContainer">
               <div id="youtubePlayer"></div>
             </div>
           </div>
 
-          <div id="controlsUnderVideo" class="controls-under-video hidden">
+          <div id="controlsUnderVideo" class="controls-under-video">
             <button id="playPauseBtnBottom" type="button">Play / Pause</button>
             <button id="backBtnBottom" type="button" class="secondary">Zurück</button>
             <button id="forwardBtnBottom" type="button" class="secondary">Vor</button>
@@ -536,7 +556,7 @@
           </div>
         </div>
 
-        <div id="controlsCard" class="controls-side hidden">
+        <div id="controlsCard" class="controls-side">
           <div class="controls-stack">
             <button id="toggleVideoBtn" type="button">Video ausblenden</button>
             <button id="playPauseBtn" type="button">Play / Pause</button>
@@ -611,6 +631,8 @@
 
     const localVideo = document.getElementById('localVideo');
     const youtubeContainer = document.getElementById('youtubeContainer');
+    const youtubePlayerHost = document.getElementById('youtubePlayer');
+    const videoShell = document.getElementById('videoShell');
     const controlsCard = document.getElementById('controlsCard');
     const controlsUnderVideo = document.getElementById('controlsUnderVideo');
     const tableScrollWrap = document.getElementById('tableScrollWrap');
@@ -655,18 +677,6 @@
     let youtubeApiReady = false;
     let youtubeTimeInterval = null;
     let videoVisible = true;
-
-    function syncControlsToBottom() {
-      skipSelectBottom.value = skipSelect.value;
-      speedSelectBottom.value = speedSelect.value;
-      timeDisplayBottom.textContent = timeDisplay.textContent;
-    }
-
-    function syncControlsToSide() {
-      skipSelect.value = skipSelectBottom.value;
-      speedSelect.value = speedSelectBottom.value;
-      timeDisplay.textContent = timeDisplayBottom.textContent;
-    }
 
     function formatTime(seconds) {
       const s = Math.max(0, Number(seconds) || 0);
@@ -714,6 +724,12 @@
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;');
+    }
+
+    function syncDisplays() {
+      timeDisplayBottom.textContent = timeDisplay.textContent;
+      skipSelectBottom.value = skipSelect.value;
+      speedSelectBottom.value = speedSelect.value;
     }
 
     function renderSpeakerTags() {
@@ -799,7 +815,7 @@
         const start = parseTimeToSeconds(row.querySelector('.time-input').value.trim());
         const pauseDisplay = row.querySelector('.pause-display');
         if (!pauseDisplay || start == null) {
-          if (pauseDisplay) pauseDisplay.textContent = '';
+          pauseDisplay.textContent = '';
           continue;
         }
 
@@ -930,8 +946,7 @@
     }
 
     function getRowsData() {
-      const rows = Array.from(tableBody.querySelectorAll('tr'));
-      return rows.map(row => {
+      return Array.from(tableBody.querySelectorAll('tr')).map(row => {
         const isPause = row.classList.contains('pause-row');
         const time = row.querySelector('.time-input').value.trim();
 
@@ -956,29 +971,21 @@
       };
     }
 
-    function padRight(str, len) {
-      return String(str ?? '').padEnd(len, ' ');
-    }
-
     function buildMetadataText() {
       const meta = getMetadata();
-      const lines = [
+      return [
         `Videoname: ${meta.title}`,
         `Länge des Ausschnitts: ${meta.length}`,
         `Quelle: ${meta.source}`,
         `Transkribiert von: ${meta.author}`,
         `Sprecher: ${speakerPresets.join(', ')}`
-      ];
-      return lines.join('\n') + '\n\n';
+      ].join('\n') + '\n\n';
     }
 
     function buildTranscriptTxt(rows) {
-      const timeWidth = 10;
-      const speakerWidth = 18;
       return rows.map(r => {
-        const timePart = padRight(`[${r.time}]`, timeWidth);
-        const speakerPart = padRight(r.type === 'pause' ? 'Pause' : r.speaker, speakerWidth);
-        return `${timePart}   ${speakerPart}   ${r.utterance}`;
+        const speakerText = r.type === 'pause' ? 'Pause' : r.speaker;
+        return `[${r.time}]    ${speakerText}    ${r.utterance}`;
       }).join('\n');
     }
 
@@ -1005,13 +1012,14 @@
       const meta = getMetadata();
 
       const lines = [
-        ['Metadaten', '', ''].map(escapeCsv).join(';'),
-        ['Videoname', meta.title, ''].map(escapeCsv).join(';'),
-        ['Länge des Ausschnitts', meta.length, ''].map(escapeCsv).join(';'),
-        ['Quelle', meta.source, ''].map(escapeCsv).join(';'),
-        ['Transkribiert von', meta.author, ''].map(escapeCsv).join(';'),
+        ['Metadaten', '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['', '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Videoname', meta.title, '', '', '', ''].map(escapeCsv).join(';'),
+        ['Länge des Ausschnitts', meta.length, '', '', '', ''].map(escapeCsv).join(';'),
+        ['Quelle', meta.source, '', '', '', ''].map(escapeCsv).join(';'),
+        ['Transkribiert von', meta.author, '', '', '', ''].map(escapeCsv).join(';'),
         ['Sprecher'].concat(speakerPresets).map(escapeCsv).join(';'),
-        '',
+        ['', '', '', '', '', ''].map(escapeCsv).join(';'),
         ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(';'),
         ...rows.map(r => [r.time, r.type === 'pause' ? 'Pause' : r.speaker, r.utterance].map(escapeCsv).join(';'))
       ];
@@ -1071,28 +1079,62 @@
       timeDisplayBottom.textContent = t;
     }
 
+    function updateControlLayout() {
+      if (!currentSource) {
+        controlsCard.classList.remove('active');
+        controlsUnderVideo.classList.remove('active');
+        return;
+      }
+
+      if (currentSource === 'local' && !videoVisible) {
+        controlsCard.classList.remove('active');
+        controlsUnderVideo.classList.add('active');
+      } else {
+        controlsCard.classList.add('active');
+        controlsUnderVideo.classList.remove('active');
+      }
+    }
+
     function updateVideoVisibility() {
+      if (!currentSource) {
+        videoShell.classList.remove('active');
+        localVideo.classList.remove('active', 'video-mode', 'audio-only-local');
+        youtubeContainer.classList.remove('active', 'video-mode');
+        controlsCard.classList.remove('active');
+        controlsUnderVideo.classList.remove('active');
+        return;
+      }
+
+      videoShell.classList.add('active');
+
       if (currentSource === 'local') {
+        youtubeContainer.classList.remove('active', 'video-mode');
+        localVideo.classList.add('active');
+
         if (videoVisible) {
+          localVideo.classList.add('video-mode');
           localVideo.classList.remove('audio-only-local');
-          localVideo.style.display = 'block';
-          controlsCard.classList.remove('hidden');
-          controlsUnderVideo.classList.add('hidden');
           toggleVideoBtn.textContent = 'Video ausblenden';
         } else {
+          localVideo.classList.remove('video-mode');
           localVideo.classList.add('audio-only-local');
-          localVideo.style.display = 'block';
-          controlsCard.classList.add('hidden');
-          controlsUnderVideo.classList.remove('hidden');
           toggleVideoBtn.textContent = 'Video einblenden';
-          syncControlsToBottom();
         }
       } else if (currentSource === 'youtube') {
-        youtubeContainer.style.display = videoVisible ? 'block' : 'none';
-        controlsCard.classList.toggle('hidden', !videoVisible);
-        controlsUnderVideo.classList.toggle('hidden', true);
-        toggleVideoBtn.textContent = videoVisible ? 'Video ausblenden' : 'Video einblenden';
+        localVideo.classList.remove('active', 'video-mode', 'audio-only-local');
+        youtubeContainer.classList.add('active');
+
+        if (videoVisible) {
+          youtubeContainer.classList.add('video-mode');
+          toggleVideoBtn.textContent = 'Video ausblenden';
+        } else {
+          youtubeContainer.classList.remove('video-mode');
+          youtubeContainer.classList.remove('active');
+          toggleVideoBtn.textContent = 'Video einblenden';
+        }
       }
+
+      updateControlLayout();
     }
 
     function setSourceStatus(text) {
@@ -1154,10 +1196,8 @@
       }
 
       currentSource = 'youtube';
-      youtubeContainer.style.display = 'block';
-      controlsCard.classList.remove('hidden');
-      controlsUnderVideo.classList.add('hidden');
-      toggleVideoBtn.textContent = 'Video ausblenden';
+      videoVisible = true;
+      updateVideoVisibility();
       setSourceStatus('YouTube-Video geladen.');
       if (!metaSource.value.trim()) metaSource.value = url;
     }
@@ -1184,11 +1224,7 @@
         localVideo.load();
         currentSource = 'local';
         videoVisible = true;
-        localVideo.classList.remove('audio-only-local');
-        localVideo.style.display = 'block';
-        controlsCard.classList.remove('hidden');
-        controlsUnderVideo.classList.add('hidden');
-        toggleVideoBtn.textContent = 'Video ausblenden';
+        updateVideoVisibility();
         setPlaybackRate(Number(speedSelect.value));
         setSourceStatus(`Lokales Video geladen: ${file.name}`);
 
@@ -1270,6 +1306,7 @@
       }
     });
 
+    updateVideoVisibility();
     renderSpeakerTags();
     createStandardRow('', 'Lehrkraft', '');
   </script>
