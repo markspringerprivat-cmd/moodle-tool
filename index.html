@@ -415,6 +415,37 @@
       border: 1px solid transparent;
     }
 
+    .global-popup {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .global-popup.hidden {
+      display: none !important;
+    }
+
+    .global-popup-box {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px 22px;
+      width: min(560px, calc(100% - 32px));
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .global-popup-box button {
+      align-self: center;
+      min-width: 110px;
+    }
+
     @media (max-width: 1200px) {
       .metadata-grid {
         grid-template-columns: 1fr 1fr;
@@ -626,6 +657,13 @@
     </div>
   </div>
 
+  <div id="globalPopup" class="global-popup hidden">
+    <div class="global-popup-box">
+      <span id="globalPopupText">Transkript wurde kopiert.</span>
+      <button id="closePopupBtn" type="button">OK</button>
+    </div>
+  </div>
+
   <script>
     const videoInput = document.getElementById('videoInput');
     const youtubeUrl = document.getElementById('youtubeUrl');
@@ -677,12 +715,30 @@
     const addPauseBtn = document.getElementById('addPauseBtn');
     const tableBody = document.getElementById('tableBody');
 
+    const globalPopup = document.getElementById('globalPopup');
+    const globalPopupText = document.getElementById('globalPopupText');
+    const closePopupBtn = document.getElementById('closePopupBtn');
+
     let speakerPresets = ['Lehrkraft', 'Schüler 1', 'Schüler 2', 'Schüler 3', 'Schüler 4'];
     let currentSource = null;
     let youtubePlayer = null;
     let youtubeApiReady = false;
     let youtubeTimeInterval = null;
     let videoVisible = true;
+
+    function showPopup(message) {
+      globalPopupText.textContent = message;
+      globalPopup.classList.remove('hidden');
+    }
+
+    function closePopup() {
+      globalPopup.classList.add('hidden');
+    }
+
+    closePopupBtn.addEventListener('click', closePopup);
+    globalPopup.addEventListener('click', (event) => {
+      if (event.target === globalPopup) closePopup();
+    });
 
     function formatTime(seconds) {
       const s = Math.max(0, Number(seconds) || 0);
@@ -1036,7 +1092,22 @@
 
     function buildClipboardText() {
       const rows = getRowsData();
-      return buildMetadataText() + buildTranscriptTxt(rows);
+
+      const analysePrompt = [
+        'Bitte analysiere das folgende Transkript im Hinblick auf die Gesprächsführung.',
+        'Beziehe dich dabei insbesondere auf:',
+        '- Struktur und Klarheit der Gesprächsführung',
+        '- Angemessenheit von Fragen, Reaktionen und Gesprächsimpulsen',
+        '- wertschätzende und professionelle Kommunikation',
+        '- Möglichkeiten zur Verbesserung',
+        '',
+        'Bitte formuliere die Analyse auf Deutsch, sachlich und konkret.',
+        '',
+        'TRANSKRIPT:',
+        ''
+      ].join('\n');
+
+      return analysePrompt + buildMetadataText() + buildTranscriptTxt(rows);
     }
 
     async function copyTextToClipboard(text) {
@@ -1387,17 +1458,29 @@
     copyTranscriptBtn.addEventListener('click', async () => {
       const text = buildClipboardText();
       const ok = await copyTextToClipboard(text);
-      setSourceStatus(ok ? 'Transkript wurde in die Zwischenablage kopiert.' : 'Kopieren in die Zwischenablage hat nicht funktioniert.');
+
+      if (ok) {
+        setSourceStatus('Transkript wurde in die Zwischenablage kopiert.');
+        showPopup('Transkript wurde kopiert und enthält bereits den Hinweis, dass es um die Analyse der Gesprächsführung geht.');
+      } else {
+        setSourceStatus('Kopieren in die Zwischenablage hat nicht funktioniert.');
+        showPopup('Das Kopieren hat leider nicht funktioniert.');
+      }
     });
 
     analyzeChatgptBtn.addEventListener('click', async () => {
       const text = buildClipboardText();
       const ok = await copyTextToClipboard(text);
+
       window.open('https://chatgpt.com/', '_blank', 'noopener');
-      setSourceStatus(ok
-        ? 'Transkript wurde kopiert. ChatGPT wurde in einem neuen Tab geöffnet.'
-        : 'ChatGPT wurde geöffnet. Das Kopieren in die Zwischenablage hat nicht funktioniert.'
-      );
+
+      if (ok) {
+        setSourceStatus('Transkript wurde kopiert. ChatGPT wurde in einem neuen Tab geöffnet.');
+        showPopup('Transkript wurde kopiert und kann jetzt im Chat-Bereich von ChatGPT eingefügt werden.');
+      } else {
+        setSourceStatus('ChatGPT wurde geöffnet. Das Kopieren in die Zwischenablage hat nicht funktioniert.');
+        showPopup('ChatGPT wurde geöffnet. Das Transkript konnte aber nicht automatisch in die Zwischenablage kopiert werden.');
+      }
     });
 
     localVideo.addEventListener('timeupdate', updateTimeDisplay);
