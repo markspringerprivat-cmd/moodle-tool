@@ -72,7 +72,7 @@
       top: 0;
       height: 0;
       background: #2d6cdf;
-      transition: height 0.2s ease;
+      transition: height 0.45s ease;
     }
 
     .rail-dot {
@@ -86,7 +86,14 @@
       transform: translateY(-50%);
       cursor: pointer;
       padding: 0;
-      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .rail-dot.is-visible {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .rail-dot.is-active {
@@ -107,14 +114,46 @@
     .card {
       border: 1px solid #ddd;
       border-radius: 12px;
-      padding: 16px;
       background: #fff;
+      overflow: hidden;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .card-header {
+      padding: 16px 16px 0 16px;
     }
 
     .section-heading {
       font-size: 18px;
       font-weight: bold;
       margin: 0 0 12px 0;
+    }
+
+    .card-content {
+      padding: 0 16px 16px 16px;
+      max-height: 4000px;
+      opacity: 1;
+      overflow: hidden;
+      transition: max-height 0.5s ease, opacity 0.35s ease, padding 0.35s ease;
+    }
+
+    .card.is-collapsed .card-content {
+      max-height: 0;
+      opacity: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    .card.is-hidden {
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+    }
+
+    .card.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
     }
 
     .metadata-grid {
@@ -617,196 +656,211 @@
       </aside>
 
       <main class="main-content" id="mainContent">
-        <div class="section card" id="step1">
-          <div class="section-heading">Schritt 1: Metadaten und Sprecher</div>
-
-          <label>Metadaten</label>
-          <div class="metadata-grid">
-            <div>
-              <label for="metaSubject" style="font-weight:normal;">Unterrichtsfach</label>
-              <input id="metaSubject" type="text" placeholder="z. B. Deutsch" />
-            </div>
-            <div>
-              <label for="metaClass" style="font-weight:normal;">Klasse</label>
-              <input id="metaClass" type="text" placeholder="z. B. 7a" />
-            </div>
-            <div>
-              <label for="metaTopic" style="font-weight:normal;">Unterrichtsthema</label>
-              <input id="metaTopic" type="text" placeholder="z. B. Argumentieren im Unterrichtsgespräch" />
-            </div>
-            <div>
-              <label for="metaTitle" style="font-weight:normal;">Videoname</label>
-              <input id="metaTitle" type="text" placeholder="z. B. Unterrichtsgespräch Klasse 7" />
-            </div>
-            <div>
-              <label for="metaLength" style="font-weight:normal;">Länge des Ausschnitts</label>
-              <input id="metaLength" type="text" placeholder="z. B. 03:25" />
-            </div>
-            <div>
-              <label for="metaSource" style="font-weight:normal;">Quelle</label>
-              <input id="metaSource" type="text" placeholder="z. B. Eigenes Video / YouTube-Link" />
-            </div>
-            <div>
-              <label for="metaAuthor" style="font-weight:normal;">Transkribiert von</label>
-              <input id="metaAuthor" type="text" placeholder="Name" />
-            </div>
+        <div class="section card is-visible" id="step1">
+          <div class="card-header">
+            <div class="section-heading">Schritt 1: Metadaten und Sprecher</div>
           </div>
-
-          <div style="margin-top: 18px;">
-            <label for="speakerInput">Sprecher hinzufügen</label>
-            <div class="speaker-input-row">
-              <input id="speakerInput" type="text" placeholder="z. B. Schüler 1" />
-              <button id="addSpeakerBtn" type="button">+</button>
-            </div>
-            <div id="speakerTags" class="speaker-tags"></div>
-          </div>
-        </div>
-
-        <div class="section card" id="step2">
-          <div class="section-heading">Schritt 2: Video importieren</div>
-
-          <div class="source-grid">
-            <div class="field-group">
-              <label for="videoInput">Lokale Videodatei</label>
-              <input id="videoInput" type="file" accept="video/*" />
-            </div>
-
-            <div class="field-group">
-              <label for="youtubeUrl">YouTube-Link</label>
-              <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
-            </div>
-
-            <div class="field-group">
-              <label style="visibility:hidden;">Aktion</label>
-              <button id="loadSourceBtn" type="button">Video laden</button>
-            </div>
-          </div>
-
-          <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
-
-          <div class="video-panel">
-            <div class="video-column">
-              <div id="videoShell" class="video-shell">
-                <video id="localVideo" controls></video>
-                <div id="youtubeContainer">
-                  <div id="youtubePlayer"></div>
-                </div>
+          <div class="card-content">
+            <label>Metadaten</label>
+            <div class="metadata-grid">
+              <div>
+                <label for="metaSubject" style="font-weight:normal;">Unterrichtsfach</label>
+                <input id="metaSubject" type="text" placeholder="z. B. Deutsch" />
               </div>
-
-              <div id="controlsUnderVideo" class="controls-under-video">
-                <button id="toggleVideoBtnBottom" type="button">Video einblenden</button>
-                <button id="playPauseBtnBottom" type="button">Play / Pause</button>
-                <button id="backBtnBottom" type="button" class="secondary">Zurück</button>
-                <button id="forwardBtnBottom" type="button" class="secondary">Vor</button>
-                <button id="insertTimeBtnBottom" type="button">Zeit übernehmen</button>
-
-                <div class="control-group">
-                  <label>Aktuelle Zeit</label>
-                  <div class="time-box" id="timeDisplayBottom">00:00.0</div>
-                </div>
-
-                <div class="control-group">
-                  <label for="skipSelectBottom">Sprungweite</label>
-                  <select id="skipSelectBottom">
-                    <option value="0.5">0,5 Sek</option>
-                    <option value="1" selected>1 Sek</option>
-                    <option value="2">2 Sek</option>
-                    <option value="5">5 Sek</option>
-                  </select>
-                </div>
-
-                <div class="control-group">
-                  <label for="speedSelectBottom">Tempo</label>
-                  <select id="speedSelectBottom">
-                    <option value="0.5">0.5x</option>
-                    <option value="0.75">0.75x</option>
-                    <option value="1" selected>1.0x</option>
-                    <option value="1.25">1.25x</option>
-                    <option value="1.5">1.5x</option>
-                    <option value="2">2.0x</option>
-                  </select>
-                </div>
+              <div>
+                <label for="metaClass" style="font-weight:normal;">Klasse</label>
+                <input id="metaClass" type="text" placeholder="z. B. 7a" />
+              </div>
+              <div>
+                <label for="metaTopic" style="font-weight:normal;">Unterrichtsthema</label>
+                <input id="metaTopic" type="text" placeholder="z. B. Argumentieren im Unterrichtsgespräch" />
+              </div>
+              <div>
+                <label for="metaTitle" style="font-weight:normal;">Videoname</label>
+                <input id="metaTitle" type="text" placeholder="z. B. Unterrichtsgespräch Klasse 7" />
+              </div>
+              <div>
+                <label for="metaLength" style="font-weight:normal;">Länge des Ausschnitts</label>
+                <input id="metaLength" type="text" placeholder="z. B. 03:25" />
+              </div>
+              <div>
+                <label for="metaSource" style="font-weight:normal;">Quelle</label>
+                <input id="metaSource" type="text" placeholder="z. B. Eigenes Video / YouTube-Link" />
+              </div>
+              <div>
+                <label for="metaAuthor" style="font-weight:normal;">Transkribiert von</label>
+                <input id="metaAuthor" type="text" placeholder="Name" />
               </div>
             </div>
 
-            <div id="controlsCard" class="controls-side">
-              <div class="controls-stack">
-                <button id="toggleVideoBtn" type="button">Video ausblenden</button>
-                <button id="playPauseBtn" type="button">Play / Pause</button>
-                <button id="backBtn" type="button" class="secondary">Zurück</button>
-                <button id="forwardBtn" type="button" class="secondary">Vor</button>
-                <button id="insertTimeBtn" type="button">Zeit übernehmen</button>
+            <div style="margin-top: 18px;">
+              <label for="speakerInput">Sprecher hinzufügen</label>
+              <div class="speaker-input-row">
+                <input id="speakerInput" type="text" placeholder="z. B. Schüler 1" />
+                <button id="addSpeakerBtn" type="button">+</button>
+              </div>
+              <div id="speakerTags" class="speaker-tags"></div>
+            </div>
+          </div>
+        </div>
 
-                <div class="control-group">
-                  <label>Aktuelle Zeit</label>
-                  <div class="time-box" id="timeDisplay">00:00.0</div>
+        <div class="section card is-hidden is-collapsed" id="step2">
+          <div class="card-header">
+            <div class="section-heading">Schritt 2: Video importieren</div>
+          </div>
+          <div class="card-content">
+            <div class="source-grid">
+              <div class="field-group">
+                <label for="videoInput">Lokale Videodatei</label>
+                <input id="videoInput" type="file" accept="video/*" />
+              </div>
+
+              <div class="field-group">
+                <label for="youtubeUrl">YouTube-Link</label>
+                <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
+              </div>
+
+              <div class="field-group">
+                <label style="visibility:hidden;">Aktion</label>
+                <button id="loadSourceBtn" type="button">Video laden</button>
+              </div>
+            </div>
+
+            <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
+
+            <div class="video-panel">
+              <div class="video-column">
+                <div id="videoShell" class="video-shell">
+                  <video id="localVideo" controls></video>
+                  <div id="youtubeContainer">
+                    <div id="youtubePlayer"></div>
+                  </div>
                 </div>
 
-                <div class="control-group">
-                  <label for="skipSelect">Sprungweite</label>
-                  <select id="skipSelect">
-                    <option value="0.5">0,5 Sek</option>
-                    <option value="1" selected>1 Sek</option>
-                    <option value="2">2 Sek</option>
-                    <option value="5">5 Sek</option>
-                  </select>
-                </div>
+                <div id="controlsUnderVideo" class="controls-under-video">
+                  <button id="toggleVideoBtnBottom" type="button">Video einblenden</button>
+                  <button id="playPauseBtnBottom" type="button">Play / Pause</button>
+                  <button id="backBtnBottom" type="button" class="secondary">Zurück</button>
+                  <button id="forwardBtnBottom" type="button" class="secondary">Vor</button>
+                  <button id="insertTimeBtnBottom" type="button">Zeit übernehmen</button>
 
-                <div class="control-group">
-                  <label for="speedSelect">Tempo</label>
-                  <select id="speedSelect">
-                    <option value="0.5">0.5x</option>
-                    <option value="0.75">0.75x</option>
-                    <option value="1" selected>1.0x</option>
-                    <option value="1.25">1.25x</option>
-                    <option value="1.5">1.5x</option>
-                    <option value="2">2.0x</option>
-                  </select>
+                  <div class="control-group">
+                    <label>Aktuelle Zeit</label>
+                    <div class="time-box" id="timeDisplayBottom">00:00.0</div>
+                  </div>
+
+                  <div class="control-group">
+                    <label for="skipSelectBottom">Sprungweite</label>
+                    <select id="skipSelectBottom">
+                      <option value="0.5">0,5 Sek</option>
+                      <option value="1" selected>1 Sek</option>
+                      <option value="2">2 Sek</option>
+                      <option value="5">5 Sek</option>
+                    </select>
+                  </div>
+
+                  <div class="control-group">
+                    <label for="speedSelectBottom">Tempo</label>
+                    <select id="speedSelectBottom">
+                      <option value="0.5">0.5x</option>
+                      <option value="0.75">0.75x</option>
+                      <option value="1" selected>1.0x</option>
+                      <option value="1.25">1.25x</option>
+                      <option value="1.5">1.5x</option>
+                      <option value="2">2.0x</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div id="controlsCard" class="controls-side">
+                <div class="controls-stack">
+                  <button id="toggleVideoBtn" type="button">Video ausblenden</button>
+                  <button id="playPauseBtn" type="button">Play / Pause</button>
+                  <button id="backBtn" type="button" class="secondary">Zurück</button>
+                  <button id="forwardBtn" type="button" class="secondary">Vor</button>
+                  <button id="insertTimeBtn" type="button">Zeit übernehmen</button>
+
+                  <div class="control-group">
+                    <label>Aktuelle Zeit</label>
+                    <div class="time-box" id="timeDisplay">00:00.0</div>
+                  </div>
+
+                  <div class="control-group">
+                    <label for="skipSelect">Sprungweite</label>
+                    <select id="skipSelect">
+                      <option value="0.5">0,5 Sek</option>
+                      <option value="1" selected>1 Sek</option>
+                      <option value="2">2 Sek</option>
+                      <option value="5">5 Sek</option>
+                    </select>
+                  </div>
+
+                  <div class="control-group">
+                    <label for="speedSelect">Tempo</label>
+                    <select id="speedSelect">
+                      <option value="0.5">0.5x</option>
+                      <option value="0.75">0.75x</option>
+                      <option value="1" selected>1.0x</option>
+                      <option value="1.25">1.25x</option>
+                      <option value="1.5">1.5x</option>
+                      <option value="2">2.0x</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="section card" id="step3">
-          <div class="section-heading">Schritt 3: Transkript anlegen</div>
-
-          <div class="table-scroll-wrap" id="tableScrollWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 120px;">Zeit</th>
-                  <th style="width: 190px;">Sprecher</th>
-                  <th>Äußerung</th>
-                  <th style="width: 160px;">Aktionen</th>
-                </tr>
-              </thead>
-              <tbody id="tableBody"></tbody>
-            </table>
+        <div class="section card is-hidden is-collapsed" id="step3">
+          <div class="card-header">
+            <div class="section-heading">Schritt 3: Transkript anlegen</div>
           </div>
+          <div class="card-content">
+            <div class="table-scroll-wrap" id="tableScrollWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 120px;">Zeit</th>
+                    <th style="width: 190px;">Sprecher</th>
+                    <th>Äußerung</th>
+                    <th style="width: 160px;">Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
 
-          <div class="table-add-row-wrap">
-            <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Sprecherwechsel</button>
-            <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Gleicher Sprecher</button>
-            <button id="addPauseBtn" type="button" class="table-add-row">+ Pause</button>
-          </div>
-        </div>
-
-        <div class="section card" id="step4">
-          <div class="section-heading">Schritt 4: Zwischenspeichern</div>
-
-          <div class="top-actions">
-            <button id="exportTxtBtn" type="button">TXT speichern</button>
-            <button id="exportCsvBtn" type="button" class="secondary">CSV speichern</button>
-            <button id="copyTranscriptBtn" type="button" class="secondary">In Zwischenablage kopieren</button>
+            <div class="table-add-row-wrap">
+              <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Sprecherwechsel</button>
+              <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Gleicher Sprecher</button>
+              <button id="addPauseBtn" type="button" class="table-add-row">+ Pause</button>
+            </div>
           </div>
         </div>
 
-        <div class="section card" id="step5">
-          <div class="section-heading">Schritt 5: Mit ChatGPT analysieren</div>
+        <div class="section card is-hidden is-collapsed" id="step4">
+          <div class="card-header">
+            <div class="section-heading">Schritt 4: Zwischenspeichern</div>
+          </div>
+          <div class="card-content">
+            <div class="top-actions">
+              <button id="exportTxtBtn" type="button">TXT speichern</button>
+              <button id="exportCsvBtn" type="button" class="secondary">CSV speichern</button>
+              <button id="copyTranscriptBtn" type="button" class="secondary">In Zwischenablage kopieren</button>
+            </div>
+          </div>
+        </div>
 
-          <div class="top-actions">
-            <button id="analyzeChatgptBtn" type="button">Fertiges Transkript mit ChatGPT analysieren lassen</button>
+        <div class="section card is-hidden is-collapsed" id="step5">
+          <div class="card-header">
+            <div class="section-heading">Schritt 5: Mit ChatGPT analysieren</div>
+          </div>
+          <div class="card-content">
+            <div class="top-actions">
+              <button id="analyzeChatgptBtn" type="button">Fertiges Transkript mit ChatGPT analysieren lassen</button>
+            </div>
           </div>
         </div>
       </main>
@@ -939,11 +993,103 @@
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    function getVisibleStepCount() {
+      let count = 1;
+      if (isStep1Complete()) count = 2;
+      if (isStep2Complete()) count = 3;
+      if (hasTranscriptContent()) count = 4;
+      if (isStep4Complete()) count = 5;
+      return count;
+    }
+
+    function isStep1Complete() {
+      return (
+        metaSubject.value.trim() !== '' &&
+        metaClass.value.trim() !== '' &&
+        metaTopic.value.trim() !== '' &&
+        speakerPresets.length > 0
+      );
+    }
+
+    function isStep2Complete() {
+      return currentSource !== null;
+    }
+
+    function hasTranscriptContent() {
+      return Array.from(tableBody.querySelectorAll('.utterance-input')).some(el => el.value.trim() !== '');
+    }
+
+    function isStep4Complete() {
+      return step4.dataset.completed === 'true';
+    }
+
+    function markStep4Completed() {
+      step4.dataset.completed = 'true';
+      updateWorkflow();
+    }
+
+    function showCard(card) {
+      if (!card.classList.contains('is-visible')) {
+        card.classList.remove('is-hidden');
+        requestAnimationFrame(() => {
+          card.classList.add('is-visible');
+        });
+      }
+      card.classList.remove('is-collapsed');
+    }
+
+    function hideCard(card) {
+      card.classList.add('is-collapsed');
+      card.classList.remove('is-visible');
+      card.classList.add('is-hidden');
+    }
+
+    function updateWorkflow() {
+      const visibleSteps = getVisibleStepCount();
+
+      showCard(step1);
+      if (visibleSteps >= 2) showCard(step2); else hideCard(step2);
+      if (visibleSteps >= 3) showCard(step3); else hideCard(step3);
+      if (visibleSteps >= 4) showCard(step4); else hideCard(step4);
+      if (visibleSteps >= 5) showCard(step5); else hideCard(step5);
+
+      const activeNumber = Number(activeStepId.replace('step', '')) || 1;
+      if (activeNumber > visibleSteps) {
+        activeStepId = 'step' + visibleSteps;
+      }
+
+      for (let i = 1; i <= 5; i++) {
+        railDots[i].classList.toggle('is-visible', i <= visibleSteps);
+      }
+
+      requestRailSync();
+    }
+
     railDot1.addEventListener('click', () => { setActiveStep('step1'); scrollToStep(1); });
-    railDot2.addEventListener('click', () => { setActiveStep('step2'); scrollToStep(2); });
-    railDot3.addEventListener('click', () => { setActiveStep('step3'); scrollToStep(3); });
-    railDot4.addEventListener('click', () => { setActiveStep('step4'); scrollToStep(4); });
-    railDot5.addEventListener('click', () => { setActiveStep('step5'); scrollToStep(5); });
+    railDot2.addEventListener('click', () => {
+      if (getVisibleStepCount() >= 2) {
+        setActiveStep('step2');
+        scrollToStep(2);
+      }
+    });
+    railDot3.addEventListener('click', () => {
+      if (getVisibleStepCount() >= 3) {
+        setActiveStep('step3');
+        scrollToStep(3);
+      }
+    });
+    railDot4.addEventListener('click', () => {
+      if (getVisibleStepCount() >= 4) {
+        setActiveStep('step4');
+        scrollToStep(4);
+      }
+    });
+    railDot5.addEventListener('click', () => {
+      if (getVisibleStepCount() >= 5) {
+        setActiveStep('step5');
+        scrollToStep(5);
+      }
+    });
 
     function getDotCenterY(stepNumber) {
       const dot = railDots[stepNumber];
@@ -973,7 +1119,8 @@
     }
 
     function updateRailLineVisuals() {
-      const activeNumber = Number(activeStepId.replace('step', '')) || 1;
+      const visibleStepCount = getVisibleStepCount();
+      const activeNumber = Math.min(Number(activeStepId.replace('step', '')) || 1, visibleStepCount);
       const activeEndY = getDotCenterY(activeNumber);
 
       railActive.style.top = '0px';
@@ -984,7 +1131,9 @@
       }
 
       for (let i = 1; i <= activeNumber; i++) {
-        railDots[i].classList.add('is-active');
+        if (i <= visibleStepCount) {
+          railDots[i].classList.add('is-active');
+        }
       }
     }
 
@@ -1024,7 +1173,7 @@
     }
 
     function updateStepStates() {
-      requestRailSync();
+      updateWorkflow();
     }
 
     function openAnalysisPopup(prefilledPrompt) {
@@ -1509,7 +1658,7 @@
       const content = buildMetadataTextFull() + buildTranscriptTxt(rows);
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
       setActiveStep('step4');
-      updateStepStates();
+      markStep4Completed();
     }
 
     function exportCsv() {
@@ -1535,7 +1684,7 @@
       const bom = '\uFEFF';
       downloadFile(bom + lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
       setActiveStep('step4');
-      updateStepStates();
+      markStep4Completed();
     }
 
     function getCurrentTime() {
@@ -1774,13 +1923,11 @@
       updateVideoVisibility();
     });
 
-    if (toggleVideoBtnBottom) {
-      toggleVideoBtnBottom.addEventListener('click', () => {
-        videoVisible = !videoVisible;
-        setActiveStep('step2');
-        updateVideoVisibility();
-      });
-    }
+    toggleVideoBtnBottom.addEventListener('click', () => {
+      videoVisible = !videoVisible;
+      setActiveStep('step2');
+      updateVideoVisibility();
+    });
 
     playPauseBtn.addEventListener('click', () => {
       setActiveStep('step2');
@@ -1892,7 +2039,7 @@
       }
 
       setActiveStep('step4');
-      updateStepStates();
+      markStep4Completed();
     });
 
     analyzeChatgptBtn.addEventListener('click', () => {
@@ -1931,12 +2078,13 @@
     window.addEventListener('load', requestRailSync);
     window.addEventListener('resize', requestRailSync);
 
+    step4.dataset.completed = 'false';
     updateVideoVisibility();
     renderSpeakerTags();
     createStandardRow('', '', '');
     setActiveStep('step1');
     startLayoutObservers();
-    updateStepStates();
+    updateWorkflow();
 
     setTimeout(requestRailSync, 100);
     setTimeout(requestRailSync, 400);
