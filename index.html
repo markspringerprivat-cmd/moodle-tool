@@ -116,7 +116,7 @@
       border-radius: 12px;
       background: #fff;
       overflow: hidden;
-      transition: opacity 0.35s ease, transform 0.35s ease;
+      transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.25s ease, box-shadow 0.25s ease;
     }
 
     .card-header {
@@ -154,6 +154,11 @@
       opacity: 1;
       transform: translateY(0);
       pointer-events: auto;
+    }
+
+    .card.is-focus {
+      border-color: rgba(45, 108, 223, 0.45);
+      box-shadow: 0 0 0 4px rgba(45, 108, 223, 0.10), 0 10px 30px rgba(45, 108, 223, 0.08);
     }
 
     .metadata-grid {
@@ -993,15 +998,6 @@
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function getVisibleStepCount() {
-      let count = 1;
-      if (isStep1Complete()) count = 2;
-      if (isStep2Complete()) count = 3;
-      if (hasTranscriptContent()) count = 4;
-      if (isStep4Complete()) count = 5;
-      return count;
-    }
-
     function isStep1Complete() {
       return (
         metaSubject.value.trim() !== '' &&
@@ -1019,6 +1015,25 @@
       return Array.from(tableBody.querySelectorAll('.utterance-input')).some(el => el.value.trim() !== '');
     }
 
+    function hasCompleteTranscriptRow() {
+      const rows = Array.from(tableBody.querySelectorAll('tr'));
+      return rows.some(row => {
+        if (row.classList.contains('pause-row')) {
+          const time = row.querySelector('.time-input')?.value.trim() || '';
+          const pauseText = row.querySelector('.pause-display')?.textContent.trim() || '';
+          return time !== '' && pauseText !== '';
+        }
+
+        const time = row.querySelector('.time-input')?.value.trim() || '';
+        const utterance = row.querySelector('.utterance-input')?.value.trim() || '';
+        const select = row.querySelector('.speaker-select');
+        const isContinuation = row.classList.contains('continuation-row');
+        const speakerOk = isContinuation ? true : !!(select && select.value.trim() !== '');
+
+        return time !== '' && utterance !== '' && speakerOk;
+      });
+    }
+
     function isStep4Complete() {
       return step4.dataset.completed === 'true';
     }
@@ -1026,6 +1041,32 @@
     function markStep4Completed() {
       step4.dataset.completed = 'true';
       updateWorkflow();
+    }
+
+    function getWorkflowStage() {
+      if (!isStep1Complete()) return 1;
+      if (!isStep2Complete()) return 2;
+      if (!hasCompleteTranscriptRow()) return 3;
+      if (!isStep4Complete()) return 4;
+      return 5;
+    }
+
+    function getVisibleStepCount() {
+      const stage = getWorkflowStage();
+      if (stage === 1) return 1;
+      if (stage === 2) return 2;
+      if (stage === 3) return 3;
+      if (stage === 4) return 4;
+      return 5;
+    }
+
+    function getFocusSteps() {
+      const stage = getWorkflowStage();
+      if (stage === 1) return [1];
+      if (stage === 2) return [2];
+      if (stage === 3) return [3];
+      if (stage === 4) return [3, 4];
+      return [5];
     }
 
     function showCard(card) {
@@ -1042,10 +1083,21 @@
       card.classList.add('is-collapsed');
       card.classList.remove('is-visible');
       card.classList.add('is-hidden');
+      card.classList.remove('is-focus');
+    }
+
+    function updateCardFocus() {
+      [step1, step2, step3, step4, step5].forEach(card => card.classList.remove('is-focus'));
+      const focusSteps = getFocusSteps();
+      focusSteps.forEach(n => {
+        const card = stepElements[n];
+        if (card) card.classList.add('is-focus');
+      });
     }
 
     function updateWorkflow() {
       const visibleSteps = getVisibleStepCount();
+      const stage = getWorkflowStage();
 
       showCard(step1);
       if (visibleSteps >= 2) showCard(step2); else hideCard(step2);
@@ -1053,40 +1105,48 @@
       if (visibleSteps >= 4) showCard(step4); else hideCard(step4);
       if (visibleSteps >= 5) showCard(step5); else hideCard(step5);
 
-      const activeNumber = Number(activeStepId.replace('step', '')) || 1;
-      if (activeNumber > visibleSteps) {
-        activeStepId = 'step' + visibleSteps;
-      }
+      activeStepId = 'step' + stage;
 
       for (let i = 1; i <= 5; i++) {
         railDots[i].classList.toggle('is-visible', i <= visibleSteps);
       }
 
+      updateCardFocus();
       requestRailSync();
     }
 
-    railDot1.addEventListener('click', () => { setActiveStep('step1'); scrollToStep(1); });
+    railDot1.addEventListener('click', () => {
+      if (getVisibleStepCount() >= 1) {
+        activeStepId = 'step1';
+        updateRailLineVisuals();
+        scrollToStep(1);
+      }
+    });
     railDot2.addEventListener('click', () => {
       if (getVisibleStepCount() >= 2) {
-        setActiveStep('step2');
+        activeStepId = 'step2';
+        updateRailLineVisuals();
         scrollToStep(2);
       }
     });
     railDot3.addEventListener('click', () => {
       if (getVisibleStepCount() >= 3) {
-        setActiveStep('step3');
+        activeStepId = 'step3';
+        updateRailLineVisuals();
         scrollToStep(3);
       }
     });
     railDot4.addEventListener('click', () => {
       if (getVisibleStepCount() >= 4) {
-        setActiveStep('step4');
+        activeStepId = 'step4';
+        updateRailLineVisuals();
         scrollToStep(4);
       }
     });
     railDot5.addEventListener('click', () => {
       if (getVisibleStepCount() >= 5) {
-        setActiveStep('step5');
+        activeStepId = 'step5';
+        updateRailLineVisuals();
         scrollToStep(5);
       }
     });
@@ -1130,10 +1190,8 @@
         railDots[i].classList.remove('is-active');
       }
 
-      for (let i = 1; i <= activeNumber; i++) {
-        if (i <= visibleStepCount) {
-          railDots[i].classList.add('is-active');
-        }
+      if (activeNumber >= 1 && activeNumber <= visibleStepCount) {
+        railDots[activeNumber].classList.add('is-active');
       }
     }
 
@@ -1144,8 +1202,7 @@
 
     function startLayoutObservers() {
       const observedElements = [
-        mainContent,
-        step1, step2, step3, step4, step5,
+        mainContent, step1, step2, step3, step4, step5,
         videoShell, localVideo, youtubeContainer, tableBody, tableScrollWrap
       ];
 
@@ -1153,7 +1210,6 @@
         resizeObserver = new ResizeObserver(() => {
           requestRailSync();
         });
-
         observedElements.forEach(el => {
           if (el) resizeObserver.observe(el);
         });
@@ -1163,7 +1219,6 @@
         mutationObserver = new MutationObserver(() => {
           requestRailSync();
         });
-
         mutationObserver.observe(mainContent, {
           childList: true,
           subtree: true,
@@ -1195,8 +1250,7 @@
       const mins = Math.floor(s / 60);
       const secs = Math.floor(s % 60);
       const tenths = Math.floor((s - Math.floor(s)) * 10);
-      return String(mins).padStart(2, '0') + ':' +
-             String(secs).padStart(2, '0') + '.' + tenths;
+      return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0') + '.' + tenths;
     }
 
     function parseTimeToSeconds(value) {
@@ -1263,7 +1317,6 @@
           speakerPresets.splice(index, 1);
           renderSpeakerTags();
           refreshAllSpeakerDropdowns();
-          setActiveStep('step1');
           updateStepStates();
         });
       });
@@ -1282,7 +1335,6 @@
       speakerInput.value = '';
       renderSpeakerTags();
       refreshAllSpeakerDropdowns();
-      setActiveStep('step1');
       updateStepStates();
     }
 
@@ -1361,10 +1413,12 @@
         timeInput.addEventListener('input', () => {
           updatePauseDurations();
           requestRailSync();
+          updateStepStates();
         });
         timeInput.addEventListener('change', () => {
           updatePauseDurations();
           requestRailSync();
+          updateStepStates();
         });
       }
     }
@@ -1394,7 +1448,7 @@
       if (select) {
         select.value = speaker;
         select.addEventListener('change', () => {
-          setActiveStep('step3');
+          updateStepStates();
         });
       }
 
@@ -1402,22 +1456,20 @@
       autoGrowTextarea(textarea);
       textarea.addEventListener('input', () => {
         autoGrowTextarea(textarea);
-        setActiveStep('step3');
         updateStepStates();
       });
 
       tr.querySelector('.use-time-btn').addEventListener('click', () => {
         tr.querySelector('.time-input').value = formatTime(getCurrentTime());
         updatePauseDurations();
-        setActiveStep('step3');
         requestRailSync();
+        updateStepStates();
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
         tr.remove();
         repairSpeakerBorders();
         updatePauseDurations();
-        setActiveStep('step3');
         updateStepStates();
       });
 
@@ -1426,7 +1478,6 @@
       repairSpeakerBorders();
       updatePauseDurations();
       scrollTableToBottom();
-      setActiveStep('step3');
       updateStepStates();
       return tr;
     }
@@ -1449,15 +1500,14 @@
       tr.querySelector('.use-time-btn').addEventListener('click', () => {
         tr.querySelector('.time-input').value = formatTime(getCurrentTime());
         updatePauseDurations();
-        setActiveStep('step3');
         requestRailSync();
+        updateStepStates();
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
         tr.remove();
         repairSpeakerBorders();
         updatePauseDurations();
-        setActiveStep('step3');
         updateStepStates();
       });
 
@@ -1466,7 +1516,6 @@
       repairSpeakerBorders();
       updatePauseDurations();
       scrollTableToBottom();
-      setActiveStep('step3');
       updateStepStates();
       return tr;
     }
@@ -1657,7 +1706,6 @@
       const rows = getRowsData();
       const content = buildMetadataTextFull() + buildTranscriptTxt(rows);
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
-      setActiveStep('step4');
       markStep4Completed();
     }
 
@@ -1683,7 +1731,6 @@
 
       const bom = '\uFEFF';
       downloadFile(bom + lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
-      setActiveStep('step4');
       markStep4Completed();
     }
 
@@ -1775,12 +1822,12 @@
           localVideo.classList.add('video-mode');
           localVideo.classList.remove('audio-only-local');
           toggleVideoBtn.textContent = 'Video ausblenden';
-          if (toggleVideoBtnBottom) toggleVideoBtnBottom.textContent = 'Video ausblenden';
+          toggleVideoBtnBottom.textContent = 'Video ausblenden';
         } else {
           localVideo.classList.remove('video-mode');
           localVideo.classList.add('audio-only-local');
           toggleVideoBtn.textContent = 'Video einblenden';
-          if (toggleVideoBtnBottom) toggleVideoBtnBottom.textContent = 'Video einblenden';
+          toggleVideoBtnBottom.textContent = 'Video einblenden';
           syncDisplays();
         }
       } else if (currentSource === 'youtube') {
@@ -1789,12 +1836,12 @@
         if (videoVisible) {
           youtubeContainer.classList.add('active', 'video-mode');
           toggleVideoBtn.textContent = 'Video ausblenden';
-          if (toggleVideoBtnBottom) toggleVideoBtnBottom.textContent = 'Video ausblenden';
+          toggleVideoBtnBottom.textContent = 'Video ausblenden';
         } else {
           youtubeContainer.classList.remove('video-mode');
           youtubeContainer.classList.remove('active');
           toggleVideoBtn.textContent = 'Video einblenden';
-          if (toggleVideoBtnBottom) toggleVideoBtnBottom.textContent = 'Video einblenden';
+          toggleVideoBtnBottom.textContent = 'Video einblenden';
           syncDisplays();
         }
       }
@@ -1868,7 +1915,6 @@
       setSourceStatus('YouTube-Video geladen.');
       if (!metaSource.value.trim()) metaSource.value = url;
       startYoutubeTimePolling();
-      setActiveStep('step2');
       updateStepStates();
     }
 
@@ -1902,7 +1948,6 @@
         if (!metaTitle.value.trim()) metaTitle.value = file.name;
         if (!metaSource.value.trim()) metaSource.value = 'Lokale Videodatei';
 
-        setActiveStep('step2');
         updateStepStates();
         return;
       }
@@ -1919,87 +1964,52 @@
 
     toggleVideoBtn.addEventListener('click', () => {
       videoVisible = !videoVisible;
-      setActiveStep('step2');
       updateVideoVisibility();
     });
 
     toggleVideoBtnBottom.addEventListener('click', () => {
       videoVisible = !videoVisible;
-      setActiveStep('step2');
       updateVideoVisibility();
     });
 
-    playPauseBtn.addEventListener('click', () => {
-      setActiveStep('step2');
-      togglePlayPause();
-    });
-
-    backBtn.addEventListener('click', () => {
-      setActiveStep('step2');
-      stepBy(-getSkipAmount());
-    });
-
-    forwardBtn.addEventListener('click', () => {
-      setActiveStep('step2');
-      stepBy(getSkipAmount());
-    });
-
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    backBtn.addEventListener('click', () => stepBy(-getSkipAmount()));
+    forwardBtn.addEventListener('click', () => stepBy(getSkipAmount()));
     insertTimeBtn.addEventListener('click', () => {
-      setActiveStep('step3');
       const row = createStandardRow(formatTime(getCurrentTime()), '', '');
       row.querySelector('.speaker-select').focus();
     });
 
-    playPauseBtnBottom.addEventListener('click', () => {
-      setActiveStep('step2');
-      togglePlayPause();
-    });
-
-    backBtnBottom.addEventListener('click', () => {
-      setActiveStep('step2');
-      stepBy(-(Number(skipSelectBottom.value) || 1));
-    });
-
-    forwardBtnBottom.addEventListener('click', () => {
-      setActiveStep('step2');
-      stepBy(Number(skipSelectBottom.value) || 1);
-    });
-
+    playPauseBtnBottom.addEventListener('click', togglePlayPause);
+    backBtnBottom.addEventListener('click', () => stepBy(-(Number(skipSelectBottom.value) || 1)));
+    forwardBtnBottom.addEventListener('click', () => stepBy(Number(skipSelectBottom.value) || 1));
     insertTimeBtnBottom.addEventListener('click', () => {
-      setActiveStep('step3');
       const row = createStandardRow(formatTime(getCurrentTime()), '', '');
       row.querySelector('.speaker-select').focus();
     });
 
     skipSelect.addEventListener('change', () => {
       skipSelectBottom.value = skipSelect.value;
-      setActiveStep('step2');
     });
 
     speedSelect.addEventListener('change', () => {
       speedSelectBottom.value = speedSelect.value;
       setPlaybackRate(Number(speedSelect.value));
-      setActiveStep('step2');
     });
 
     skipSelectBottom.addEventListener('change', () => {
       skipSelect.value = skipSelectBottom.value;
-      setActiveStep('step2');
     });
 
     speedSelectBottom.addEventListener('change', () => {
       speedSelect.value = speedSelectBottom.value;
       setPlaybackRate(Number(speedSelectBottom.value));
-      setActiveStep('step2');
     });
 
     [
       metaSubject, metaClass, metaTopic, metaTitle, metaLength, metaSource, metaAuthor
     ].forEach(el => {
-      el.addEventListener('input', () => {
-        setActiveStep('step1');
-        updateStepStates();
-      });
+      el.addEventListener('input', updateStepStates);
     });
 
     addSpeakerBtn.addEventListener('click', addSpeaker);
@@ -2010,20 +2020,9 @@
       }
     });
 
-    addSpeakerChangeBtn.addEventListener('click', () => {
-      setActiveStep('step3');
-      addRowSpeakerChange();
-    });
-
-    addSameSpeakerBtn.addEventListener('click', () => {
-      setActiveStep('step3');
-      addRowSameSpeaker();
-    });
-
-    addPauseBtn.addEventListener('click', () => {
-      setActiveStep('step3');
-      addPauseRow();
-    });
+    addSpeakerChangeBtn.addEventListener('click', addRowSpeakerChange);
+    addSameSpeakerBtn.addEventListener('click', addRowSameSpeaker);
+    addPauseBtn.addEventListener('click', addPauseRow);
 
     exportTxtBtn.addEventListener('click', exportTxt);
     exportCsvBtn.addEventListener('click', exportCsv);
@@ -2038,12 +2037,10 @@
         setSourceStatus('Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
 
-      setActiveStep('step4');
       markStep4Completed();
     });
 
     analyzeChatgptBtn.addEventListener('click', () => {
-      setActiveStep('step5');
       openAnalysisPopup(buildDefaultAnalysisPrompt());
     });
 
@@ -2060,8 +2057,6 @@
         setSourceStatus('ChatGPT wurde geöffnet. Das Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
 
-      setActiveStep('step5');
-      updateStepStates();
       closeAnalysisPopup();
     });
 
@@ -2078,11 +2073,37 @@
     window.addEventListener('load', requestRailSync);
     window.addEventListener('resize', requestRailSync);
 
+    function startLayoutObservers() {
+      const observedElements = [
+        mainContent, step1, step2, step3, step4, step5,
+        videoShell, localVideo, youtubeContainer, tableBody, tableScrollWrap
+      ];
+
+      if ('ResizeObserver' in window) {
+        resizeObserver = new ResizeObserver(() => {
+          requestRailSync();
+        });
+        observedElements.forEach(el => {
+          if (el) resizeObserver.observe(el);
+        });
+      }
+
+      if ('MutationObserver' in window) {
+        mutationObserver = new MutationObserver(() => {
+          requestRailSync();
+        });
+        mutationObserver.observe(mainContent, {
+          childList: true,
+          subtree: true,
+          attributes: true
+        });
+      }
+    }
+
     step4.dataset.completed = 'false';
     updateVideoVisibility();
     renderSpeakerTags();
     createStandardRow('', '', '');
-    setActiveStep('step1');
     startLayoutObservers();
     updateWorkflow();
 
