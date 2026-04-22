@@ -66,6 +66,7 @@
       top: 0;
       bottom: 0;
       background: #d7dfe8;
+      transition: top 0.45s ease;
     }
 
     .rail-active {
@@ -94,6 +95,11 @@
     .rail-dot.is-visible {
       opacity: 1;
       pointer-events: auto;
+    }
+
+    .rail-dot.is-done {
+      background: #2d6cdf;
+      border-color: #2d6cdf;
     }
 
     .rail-dot.is-active {
@@ -953,6 +959,7 @@
     const mainContent = document.getElementById('mainContent');
     const progressRail = document.getElementById('progressRail');
     const railActive = document.getElementById('railActive');
+    const railBase = progressRail.querySelector('.rail-base');
 
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
@@ -972,7 +979,6 @@
     let youtubeApiReady = false;
     let youtubeTimeInterval = null;
     let videoVisible = true;
-    let activeStepId = 'step1';
 
     let resizeObserver = null;
     let mutationObserver = null;
@@ -1009,10 +1015,6 @@
 
     function isStep2Complete() {
       return currentSource !== null;
-    }
-
-    function hasTranscriptContent() {
-      return Array.from(tableBody.querySelectorAll('.utterance-input')).some(el => el.value.trim() !== '');
     }
 
     function hasCompleteTranscriptRow() {
@@ -1097,15 +1099,12 @@
 
     function updateWorkflow() {
       const visibleSteps = getVisibleStepCount();
-      const stage = getWorkflowStage();
 
       showCard(step1);
       if (visibleSteps >= 2) showCard(step2); else hideCard(step2);
       if (visibleSteps >= 3) showCard(step3); else hideCard(step3);
       if (visibleSteps >= 4) showCard(step4); else hideCard(step4);
       if (visibleSteps >= 5) showCard(step5); else hideCard(step5);
-
-      activeStepId = 'step' + stage;
 
       for (let i = 1; i <= 5; i++) {
         railDots[i].classList.toggle('is-visible', i <= visibleSteps);
@@ -1116,39 +1115,19 @@
     }
 
     railDot1.addEventListener('click', () => {
-      if (getVisibleStepCount() >= 1) {
-        activeStepId = 'step1';
-        updateRailLineVisuals();
-        scrollToStep(1);
-      }
+      if (getVisibleStepCount() >= 1) scrollToStep(1);
     });
     railDot2.addEventListener('click', () => {
-      if (getVisibleStepCount() >= 2) {
-        activeStepId = 'step2';
-        updateRailLineVisuals();
-        scrollToStep(2);
-      }
+      if (getVisibleStepCount() >= 2) scrollToStep(2);
     });
     railDot3.addEventListener('click', () => {
-      if (getVisibleStepCount() >= 3) {
-        activeStepId = 'step3';
-        updateRailLineVisuals();
-        scrollToStep(3);
-      }
+      if (getVisibleStepCount() >= 3) scrollToStep(3);
     });
     railDot4.addEventListener('click', () => {
-      if (getVisibleStepCount() >= 4) {
-        activeStepId = 'step4';
-        updateRailLineVisuals();
-        scrollToStep(4);
-      }
+      if (getVisibleStepCount() >= 4) scrollToStep(4);
     });
     railDot5.addEventListener('click', () => {
-      if (getVisibleStepCount() >= 5) {
-        activeStepId = 'step5';
-        updateRailLineVisuals();
-        scrollToStep(5);
-      }
+      if (getVisibleStepCount() >= 5) scrollToStep(5);
     });
 
     function getDotCenterY(stepNumber) {
@@ -1180,24 +1159,29 @@
 
     function updateRailLineVisuals() {
       const visibleStepCount = getVisibleStepCount();
-      const activeNumber = Math.min(Number(activeStepId.replace('step', '')) || 1, visibleStepCount);
-      const activeEndY = getDotCenterY(activeNumber);
+      const activeNumber = Math.min(getWorkflowStage(), visibleStepCount);
+      const activeCenterY = getDotCenterY(activeNumber);
 
       railActive.style.top = '0px';
-      railActive.style.height = Math.max(0, activeEndY) + 'px';
+      railActive.style.height = Math.max(0, activeCenterY) + 'px';
+
+      railBase.style.top = activeCenterY + 'px';
+      railBase.style.bottom = '0px';
 
       for (let i = 1; i <= 5; i++) {
         railDots[i].classList.remove('is-active');
+        railDots[i].classList.remove('is-done');
       }
 
-      if (activeNumber >= 1 && activeNumber <= visibleStepCount) {
+      for (let i = 1; i <= activeNumber; i++) {
+        if (i <= visibleStepCount) {
+          railDots[i].classList.add('is-done');
+        }
+      }
+
+      if (railDots[activeNumber]) {
         railDots[activeNumber].classList.add('is-active');
       }
-    }
-
-    function setActiveStep(stepId) {
-      activeStepId = stepId;
-      updateRailLineVisuals();
     }
 
     function startLayoutObservers() {
