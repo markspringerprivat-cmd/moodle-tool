@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Video zu Transkript</title>
+  <title>Transkript-Editor</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      width: 100%;
       background: #ffffff;
       font-family: Arial, sans-serif;
       color: #111;
@@ -17,80 +16,72 @@
     body {
       display: flex;
       justify-content: center;
-      align-items: flex-start;
-      background: #ffffff;
     }
 
     .app {
-      width: min(1000px, 100%);
-      padding: 32px 24px 48px;
+      width: min(1100px, 100%);
+      padding: 24px;
       box-sizing: border-box;
-      background: #ffffff;
     }
 
     h1 {
-      margin: 0 0 10px;
       text-align: center;
-      font-size: 2.2rem;
+      margin-top: 0;
+      margin-bottom: 10px;
     }
 
     .intro {
       text-align: center;
-      margin: 0 0 24px;
+      color: #444;
+      margin-bottom: 24px;
       line-height: 1.5;
-      color: #333;
     }
 
     .section {
       margin-top: 24px;
     }
 
-    .label {
+    label {
       display: block;
-      margin-bottom: 8px;
       font-weight: bold;
+      margin-bottom: 8px;
     }
 
-    input[type="file"] {
-      display: block;
-      margin-bottom: 14px;
+    input[type="file"], select {
+      padding: 10px;
+      border: 1px solid #bbb;
+      border-radius: 8px;
+      font-size: 15px;
+      background: #fff;
     }
 
     video {
       width: 100%;
-      max-height: 420px;
+      max-height: 500px;
       background: #000;
-      border-radius: 8px;
+      border-radius: 10px;
     }
 
-    textarea {
-      width: 100%;
-      min-height: 260px;
-      padding: 14px;
-      border: 1px solid #bbbbbb;
-      border-radius: 8px;
-      box-sizing: border-box;
-      resize: vertical;
-      font-size: 16px;
-      font-family: Arial, sans-serif;
-      line-height: 1.5;
-      background: #fff;
-    }
-
-    .button-row {
-      margin-top: 18px;
-      text-align: center;
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: center;
     }
 
     button {
-      padding: 12px 20px;
+      padding: 10px 16px;
       border: none;
       border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
       background: #2d6cdf;
       color: white;
-      margin: 0 6px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    button.secondary {
+      background: #666;
     }
 
     button:disabled {
@@ -98,255 +89,280 @@
       cursor: not-allowed;
     }
 
-    .secondary {
-      background: #666;
-    }
-
-    .status {
-      margin-top: 18px;
-      text-align: center;
-      min-height: 26px;
-      line-height: 1.5;
+    .time-display {
+      font-weight: bold;
       color: #333;
+      min-width: 120px;
     }
 
-    .note {
-      margin-top: 16px;
+    .speed-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f5f5f5;
+      text-align: left;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .small-btn {
+      padding: 6px 10px;
       font-size: 13px;
-      line-height: 1.4;
-      color: #666;
-      text-align: center;
     }
 
-    .hidden {
-      display: none;
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.4;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <h1>Video zu Transkript</h1>
+    <h1>Transkript-Editor</h1>
     <p class="intro">
-      Lade ein Video hoch. Die Seite extrahiert lokal die Audiospur und erstellt daraus ein Transkript.
+      Video hochladen, anhalten, in kleinen Schritten vor- und zurückgehen und das Transkript direkt Zeile für Zeile erfassen.
     </p>
 
     <div class="section">
-      <label class="label" for="videoInput">Video auswählen:</label>
+      <label for="videoInput">Video auswählen</label>
       <input id="videoInput" type="file" accept="video/*" />
-      <video id="videoPreview" controls class="hidden"></video>
     </div>
 
     <div class="section">
-      <div class="button-row">
-        <button id="startBtn" type="button" disabled>Transkript erstellen</button>
-        <button id="copyBtn" type="button" class="secondary" disabled>Transkript kopieren</button>
+      <video id="videoPlayer" controls></video>
+
+      <div class="controls">
+        <button id="playPauseBtn" type="button">Play / Pause</button>
+        <button id="back1Btn" type="button" class="secondary">-1 Sek</button>
+        <button id="forward1Btn" type="button" class="secondary">+1 Sek</button>
+        <button id="insertTimeBtn" type="button">Zeit in neue Zeile übernehmen</button>
+
+        <div class="time-display" id="timeDisplay">00:00.0</div>
+
+        <div class="speed-box">
+          <label for="speedSelect" style="margin:0; font-weight:normal;">Tempo</label>
+          <select id="speedSelect">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1.0x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+          </select>
+        </div>
       </div>
-      <div id="status" class="status">Noch kein Video ausgewählt.</div>
-      <div class="note">
-        Der erste Start kann mehrere Minuten dauern, weil Browser-Komponenten und Sprachmodell geladen werden.
+
+      <div class="hint">
+        Empfehlung: Mit „-1 Sek“ und „+1 Sek“ fein navigieren, dann für jede Äußerung eine neue Zeile anlegen.
       </div>
     </div>
 
     <div class="section">
-      <label class="label" for="transcriptBox">Transkript:</label>
-      <textarea id="transcriptBox" placeholder="Hier erscheint das Transkript ..." spellcheck="false"></textarea>
+      <div class="top-actions">
+        <button id="addRowBtn" type="button">Neue Zeile</button>
+        <button id="exportTxtBtn" type="button">Als TXT exportieren</button>
+        <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
+      </div>
+
+      <table id="transcriptTable">
+        <thead>
+          <tr>
+            <th style="width: 140px;">Zeit</th>
+            <th style="width: 160px;">Sprecher</th>
+            <th>Äußerung</th>
+            <th style="width: 150px;">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
     </div>
   </div>
 
-  <script type="module">
-    import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js';
-    import { fetchFile, toBlobURL } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js';
-    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
-
-    env.allowLocalModels = false;
-
+  <script>
     const videoInput = document.getElementById('videoInput');
-    const videoPreview = document.getElementById('videoPreview');
-    const startBtn = document.getElementById('startBtn');
-    const copyBtn = document.getElementById('copyBtn');
-    const statusBox = document.getElementById('status');
-    const transcriptBox = document.getElementById('transcriptBox');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const back1Btn = document.getElementById('back1Btn');
+    const forward1Btn = document.getElementById('forward1Btn');
+    const insertTimeBtn = document.getElementById('insertTimeBtn');
+    const speedSelect = document.getElementById('speedSelect');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const addRowBtn = document.getElementById('addRowBtn');
+    const exportTxtBtn = document.getElementById('exportTxtBtn');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const tableBody = document.getElementById('tableBody');
 
-    let selectedFile = null;
-    let ffmpeg = null;
-    let ffmpegReady = false;
-    let transcriber = null;
-    let transcriberReady = false;
-    let busy = false;
-
-    function setStatus(text) {
-      statusBox.textContent = text;
+    function formatTime(seconds) {
+      const s = Math.max(0, seconds || 0);
+      const mins = Math.floor(s / 60);
+      const secs = Math.floor(s % 60);
+      const tenths = Math.floor((s - Math.floor(s)) * 10);
+      return String(mins).padStart(2, '0') + ':' +
+             String(secs).padStart(2, '0') + '.' + tenths;
     }
 
-    function setBusy(state) {
-      busy = state;
-      startBtn.disabled = state || !selectedFile || !ffmpegReady || !transcriberReady;
-      copyBtn.disabled = state || !transcriptBox.value.trim();
-      videoInput.disabled = state;
+    function escapeCsv(value) {
+      const text = String(value ?? '');
+      return '"' + text.replace(/"/g, '""') + '"';
     }
 
-    async function ladeFFmpeg() {
-      if (ffmpegReady) return ffmpeg;
+    function createRow(time = '', speaker = '', utterance = '') {
+      const tr = document.createElement('tr');
 
-      setStatus('Videokomponente wird geladen ...');
-      ffmpeg = new FFmpeg();
+      tr.innerHTML = `
+        <td><input type="text" class="time-input" value="${time}"></td>
+        <td><input type="text" class="speaker-input" value="${speaker}" placeholder="z. B. Lehrkraft, S1"></td>
+        <td><textarea class="utterance-input" placeholder="Äußerung eingeben ...">${utterance}</textarea></td>
+        <td>
+          <div class="row-actions">
+            <button type="button" class="small-btn use-time-btn">Aktuelle Zeit</button>
+            <button type="button" class="small-btn secondary delete-row-btn">Löschen</button>
+          </div>
+        </td>
+      `;
 
-      const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
-      const coreURL = await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript');
-      const wasmURL = await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm');
-
-      await ffmpeg.load({
-        coreURL,
-        wasmURL
+      tr.querySelector('.use-time-btn').addEventListener('click', () => {
+        tr.querySelector('.time-input').value = formatTime(videoPlayer.currentTime);
       });
 
-      ffmpegReady = true;
-      return ffmpeg;
+      tr.querySelector('.delete-row-btn').addEventListener('click', () => {
+        tr.remove();
+      });
+
+      tableBody.appendChild(tr);
+      return tr;
     }
 
-    async function ladeASR() {
-      if (transcriberReady) return transcriber;
-
-      setStatus('Sprachmodell wird geladen ...');
-      try {
-        transcriber = await pipeline(
-          'automatic-speech-recognition',
-          'Xenova/whisper-tiny',
-          { device: 'webgpu' }
-        );
-      } catch (err) {
-        console.warn('WebGPU nicht verfügbar, nutze Fallback.', err);
-        setStatus('Sprachmodell wird ohne WebGPU geladen ...');
-        transcriber = await pipeline(
-          'automatic-speech-recognition',
-          'Xenova/whisper-tiny'
-        );
-      }
-
-      transcriberReady = true;
-      return transcriber;
+    function getRowsData() {
+      return Array.from(tableBody.querySelectorAll('tr')).map(row => ({
+        time: row.querySelector('.time-input').value.trim(),
+        speaker: row.querySelector('.speaker-input').value.trim(),
+        utterance: row.querySelector('.utterance-input').value.trim()
+      }));
     }
 
-    async function ensureEverythingLoaded() {
-      await ladeFFmpeg();
-      await ladeASR();
-      setStatus('Bereit. Du kannst jetzt ein Video transkribieren.');
-      setBusy(false);
+    function downloadFile(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
-    async function extrahiereAudioAlsWav(file) {
-      const inputName = 'input_video';
-      const outputName = 'audio.wav';
-
-      await ffmpeg.writeFile(inputName, await fetchFile(file));
-
-      // Mono WAV, 16 kHz – passend für ASR-Workflows
-      await ffmpeg.exec([
-        '-i', inputName,
-        '-vn',
-        '-ac', '1',
-        '-ar', '16000',
-        '-f', 'wav',
-        outputName
-      ]);
-
-      const data = await ffmpeg.readFile(outputName);
-
-      try { await ffmpeg.deleteFile(inputName); } catch {}
-      try { await ffmpeg.deleteFile(outputName); } catch {}
-
-      return new Blob([data.buffer], { type: 'audio/wav' });
+    function exportTxt() {
+      const rows = getRowsData();
+      const lines = rows.map(r => `[${r.time}] ${r.speaker}: ${r.utterance}`);
+      downloadFile(lines.join('\\n'), 'transkript.txt', 'text/plain;charset=utf-8');
     }
 
-    async function transkribiereAudio(audioBlob) {
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      try {
-        const result = await transcriber(audioUrl, {
-          chunk_length_s: 30,
-          stride_length_s: 5,
-          language: 'german',
-          task: 'transcribe',
-          return_timestamps: false
-        });
-
-        if (typeof result === 'string') return result;
-        if (result?.text) return result.text;
-        return 'Kein Transkript erzeugt.';
-      } finally {
-        URL.revokeObjectURL(audioUrl);
-      }
+    function exportCsv() {
+      const rows = getRowsData();
+      const lines = [
+        ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(','),
+        ...rows.map(r => [r.time, r.speaker, r.utterance].map(escapeCsv).join(','))
+      ];
+      downloadFile(lines.join('\\n'), 'transkript.csv', 'text/csv;charset=utf-8');
     }
 
-    videoInput.addEventListener('change', (event) => {
-      const file = event.target.files?.[0] || null;
-      selectedFile = file;
-
-      transcriptBox.value = '';
-      copyBtn.disabled = true;
-
-      if (!file) {
-        videoPreview.classList.add('hidden');
-        videoPreview.removeAttribute('src');
-        setStatus('Noch kein Video ausgewählt.');
-        startBtn.disabled = true;
-        return;
-      }
+    videoInput.addEventListener('change', () => {
+      const file = videoInput.files?.[0];
+      if (!file) return;
 
       const url = URL.createObjectURL(file);
-      videoPreview.src = url;
-      videoPreview.classList.remove('hidden');
+      videoPlayer.src = url;
+      videoPlayer.load();
+    });
 
-      if (ffmpegReady && transcriberReady && !busy) {
-        startBtn.disabled = false;
-        setStatus('Video ausgewählt. Du kannst jetzt das Transkript erstellen.');
+    playPauseBtn.addEventListener('click', () => {
+      if (videoPlayer.paused) {
+        videoPlayer.play();
       } else {
-        setStatus('Video ausgewählt. Komponenten werden vorbereitet ...');
+        videoPlayer.pause();
       }
     });
 
-    startBtn.addEventListener('click', async () => {
-      if (!selectedFile || busy) return;
-
-      try {
-        setBusy(true);
-        transcriptBox.value = '';
-        setStatus('Audio wird aus dem Video extrahiert ...');
-
-        const audioBlob = await extrahiereAudioAlsWav(selectedFile);
-
-        setStatus('Audio wurde extrahiert. Transkription läuft ...');
-        const text = await transkribiereAudio(audioBlob);
-
-        transcriptBox.value = text?.trim() || 'Kein Transkript erzeugt.';
-        setStatus('Fertig.');
-        copyBtn.disabled = !transcriptBox.value.trim();
-      } catch (error) {
-        console.error(error);
-        transcriptBox.value = '';
-        setStatus('Fehler bei Audio-Extraktion oder Transkription.');
-      } finally {
-        setBusy(false);
-      }
+    back1Btn.addEventListener('click', () => {
+      videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 1);
     });
 
-    copyBtn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(transcriptBox.value);
-        setStatus('Transkript wurde in die Zwischenablage kopiert.');
-      } catch (error) {
-        console.error(error);
-        setStatus('Kopieren war nicht möglich.');
-      }
+    forward1Btn.addEventListener('click', () => {
+      const duration = isFinite(videoPlayer.duration) ? videoPlayer.duration : videoPlayer.currentTime + 1;
+      videoPlayer.currentTime = Math.min(duration, videoPlayer.currentTime + 1);
     });
 
-    // Vorladen
-    setBusy(true);
-    ensureEverythingLoaded().catch((error) => {
-      console.error(error);
-      setStatus('Die benötigten Browser-Komponenten konnten nicht vollständig geladen werden.');
-      setBusy(false);
+    insertTimeBtn.addEventListener('click', () => {
+      const row = createRow(formatTime(videoPlayer.currentTime), '', '');
+      row.querySelector('.speaker-input').focus();
     });
+
+    speedSelect.addEventListener('change', () => {
+      videoPlayer.playbackRate = Number(speedSelect.value);
+    });
+
+    addRowBtn.addEventListener('click', () => {
+      const row = createRow('', '', '');
+      row.querySelector('.time-input').focus();
+    });
+
+    exportTxtBtn.addEventListener('click', exportTxt);
+    exportCsvBtn.addEventListener('click', exportCsv);
+
+    videoPlayer.addEventListener('timeupdate', () => {
+      timeDisplay.textContent = formatTime(videoPlayer.currentTime);
+    });
+
+    videoPlayer.addEventListener('loadedmetadata', () => {
+      timeDisplay.textContent = formatTime(0);
+    });
+
+    createRow('', 'Lehrkraft', '');
   </script>
 </body>
 </html>
