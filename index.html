@@ -19,7 +19,7 @@
     }
 
     .app {
-      width: min(1400px, 100%);
+      width: min(1500px, 100%);
       padding: 24px;
       box-sizing: border-box;
     }
@@ -39,7 +39,7 @@
 
     .main-layout {
       display: grid;
-      grid-template-columns: minmax(420px, 0.95fr) minmax(520px, 1.05fr);
+      grid-template-columns: minmax(380px, 0.8fr) minmax(700px, 1.2fr);
       gap: 24px;
       align-items: start;
     }
@@ -85,7 +85,7 @@
     }
 
     textarea {
-      min-height: 70px;
+      min-height: 110px;
       resize: vertical;
     }
 
@@ -178,6 +178,7 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 12px;
+      table-layout: fixed;
     }
 
     th, td {
@@ -206,6 +207,10 @@
 
     .mono {
       font-family: Consolas, monospace;
+    }
+
+    .utterance-input {
+      min-height: 140px;
     }
 
     @media (max-width: 1100px) {
@@ -279,8 +284,10 @@
           </div>
 
           <div class="hint">
-            Tastatur: <span class="mono">Leertaste</span> = Play/Pause, <span class="mono">←</span> = zurück, <span class="mono">→</span> = vor.
-            Die Shortcuts greifen nicht, wenn du gerade in ein Textfeld schreibst.
+            Globale Shortcuts: <span class="mono">Alt + Leertaste</span> = Play/Pause,
+            <span class="mono">Alt + ←</span> = zurück,
+            <span class="mono">Alt + →</span> = vor,
+            <span class="mono">Alt + N</span> = Zeit in neue Zeile.
           </div>
         </div>
       </div>
@@ -312,8 +319,8 @@
           <table>
             <thead>
               <tr>
-                <th style="width: 140px;">Zeit</th>
-                <th style="width: 220px;">Sprecher</th>
+                <th style="width: 120px;">Zeit</th>
+                <th style="width: 180px;">Sprecher</th>
                 <th>Äußerung</th>
                 <th style="width: 150px;">Aktionen</th>
               </tr>
@@ -557,12 +564,6 @@
       timeDisplay.textContent = formatTime(getCurrentTime());
     }
 
-    function isTypingTarget(el) {
-      if (!el) return false;
-      const tag = el.tagName;
-      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
-    }
-
     function extractYoutubeId(url) {
       try {
         const parsed = new URL(url);
@@ -693,7 +694,7 @@
     });
 
     document.addEventListener('keydown', (event) => {
-      if (isTypingTarget(document.activeElement)) return;
+      if (!event.altKey) return;
 
       if (event.code === 'Space') {
         event.preventDefault();
@@ -704,6 +705,10 @@
       } else if (event.code === 'ArrowRight') {
         event.preventDefault();
         stepBy(getSkipAmount());
+      } else if (event.code === 'KeyN') {
+        event.preventDefault();
+        const row = createRow(formatTime(getCurrentTime()), '', '');
+        row.querySelector('.speaker-select').focus();
       }
     });
 
