@@ -78,7 +78,6 @@
 
     input[type="file"],
     input[type="text"],
-    input[type="number"],
     select,
     textarea {
       width: 100%;
@@ -95,10 +94,6 @@
       resize: none;
       overflow-y: hidden;
       line-height: 1.4;
-    }
-
-    .row {
-      margin-top: 12px;
     }
 
     .speaker-input-row {
@@ -334,16 +329,14 @@
       border-top: none !important;
     }
 
-    .pause-duration-wrap {
+    .pause-display {
+      color: #444;
+      padding: 10px 12px;
+      min-height: 38px;
       display: flex;
       align-items: center;
-      gap: 8px;
-    }
-
-    .pause-duration-label {
-      white-space: nowrap;
-      color: #444;
-      font-size: 14px;
+      box-sizing: border-box;
+      border: 1px solid transparent;
     }
 
     .pause-row textarea {
@@ -562,6 +555,22 @@
              String(secs).padStart(2, '0') + '.' + tenths;
     }
 
+    function parseTimeToSeconds(value) {
+      if (!value) return null;
+      const trimmed = String(value).trim();
+      const match = trimmed.match(/^(\d+):(\d{2})(?:\.(\d))?$/);
+      if (!match) return null;
+      const mins = Number(match[1]);
+      const secs = Number(match[2]);
+      const tenths = match[3] ? Number(match[3]) / 10 : 0;
+      return mins * 60 + secs + tenths;
+    }
+
+    function formatDuration(seconds) {
+      if (seconds == null || !isFinite(seconds) || seconds < 0) return '';
+      return seconds.toFixed(1) + 's';
+    }
+
     function autoGrowTextarea(el) {
       if (!el) return;
       el.style.height = '38px';
@@ -662,14 +671,50 @@
 
         const isContinuation = row.classList.contains('continuation-row');
         const prev = rows[index - 1];
-        const prevIsSpeech = prev && !prev.classList.contains('pause-row');
-        const prevAllowsContinuation = prev && !prev.classList.contains('pause-row');
 
-        if (isContinuation && prev && prevAllowsContinuation) {
+        if (isContinuation && prev && !prev.classList.contains('pause-row')) {
           speakerCell.classList.add('speaker-continuation');
           prev.children[1].style.borderBottom = 'none';
         }
       });
+    }
+
+    function updatePauseDurations() {
+      const rows = Array.from(tableBody.querySelectorAll('tr'));
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row.classList.contains('pause-row')) continue;
+
+        const start = parseTimeToSeconds(row.querySelector('.time-input').value.trim());
+        const pauseDisplay = row.querySelector('.pause-display');
+        if (!pauseDisplay || start == null) {
+          if (pauseDisplay) pauseDisplay.textContent = 'Dauer:';
+          continue;
+        }
+
+        let nextTime = null;
+        for (let j = i + 1; j < rows.length; j++) {
+          const nextRowTime = parseTimeToSeconds(rows[j].querySelector('.time-input').value.trim());
+          if (nextRowTime != null) {
+            nextTime = nextRowTime;
+            break;
+          }
+        }
+
+        if (nextTime == null || nextTime < start) {
+          pauseDisplay.textContent = 'Dauer:';
+        } else {
+          pauseDisplay.textContent = 'Dauer: ' + formatDuration(nextTime - start);
+        }
+      }
+    }
+
+    function attachTimeListeners(tr) {
+      const timeInput = tr.querySelector('.time-input');
+      if (timeInput) {
+        timeInput.addEventListener('input', updatePauseDurations);
+        timeInput.addEventListener('change', updatePauseDurations);
+      }
     }
 
     function createStandardRow(time = '', speaker = '', utterance = '', blankSpeaker = false) {
@@ -714,32 +759,31 @@
 
       tr.querySelector('.use-time-btn').addEventListener('click', () => {
         tr.querySelector('.time-input').value = formatTime(getCurrentTime());
+        updatePauseDurations();
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
         tr.remove();
         repairSpeakerBorders();
+        updatePauseDurations();
       });
 
+      attachTimeListeners(tr);
       tableBody.appendChild(tr);
       repairSpeakerBorders();
+      updatePauseDurations();
       scrollTableToBottom();
       return tr;
     }
 
-    function createPauseRow(time = '', duration = '') {
+    function createPauseRow(time = '') {
       const tr = document.createElement('tr');
       tr.classList.add('pause-row');
 
       tr.innerHTML = `
         <td><input type="text" class="time-input" value="${escapeHtml(time)}"></td>
         <td><div class="pause-blank" aria-label="Pause">&nbsp;</div></td>
-        <td>
-          <div class="pause-duration-wrap">
-            <span class="pause-duration-label">Dauer</span>
-            <input type="text" class="pause-duration-input" placeholder="z. B. 2.0s" value="${escapeHtml(duration)}">
-          </div>
-        </td>
+        <td><div class="pause-display">Dauer:</div></td>
         <td>
           <div class="row-actions">
             <button type="button" class="small-btn use-time-btn">Aktuelle Zeit</button>
@@ -750,15 +794,19 @@
 
       tr.querySelector('.use-time-btn').addEventListener('click', () => {
         tr.querySelector('.time-input').value = formatTime(getCurrentTime());
+        updatePauseDurations();
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
         tr.remove();
         repairSpeakerBorders();
+        updatePauseDurations();
       });
 
+      attachTimeListeners(tr);
       tableBody.appendChild(tr);
       repairSpeakerBorders();
+      updatePauseDurations();
       scrollTableToBottom();
       return tr;
     }
@@ -782,23 +830,22 @@
     }
 
     function addPauseRow() {
-      const row = createPauseRow(formatTime(getCurrentTime()), '');
-      row.querySelector('.pause-duration-input').focus();
+      createPauseRow(formatTime(getCurrentTime()));
     }
 
     function getRowsData() {
-      return Array.from(tableBody.querySelectorAll('tr')).map(row => {
+      const rows = Array.from(tableBody.querySelectorAll('tr'));
+      return rows.map(row => {
         const isPause = row.classList.contains('pause-row');
         const time = row.querySelector('.time-input').value.trim();
 
         if (isPause) {
-          const duration = row.querySelector('.pause-duration-input').value.trim();
+          const display = row.querySelector('.pause-display')?.textContent?.trim() || 'Dauer:';
           return {
             type: 'pause',
             time,
             speaker: '',
-            utterance: '',
-            duration
+            utterance: display,
           };
         }
 
@@ -810,7 +857,6 @@
           time,
           speaker,
           utterance,
-          duration: ''
         };
       });
     }
@@ -824,21 +870,31 @@
       };
     }
 
+    function padRight(str, len) {
+      return String(str ?? '').padEnd(len, ' ');
+    }
+
     function buildMetadataText() {
       const meta = getMetadata();
-      const speakersLine = speakerPresets.length
-        ? `Sprecher: ${speakerPresets.join(', ')}`
-        : 'Sprecher:';
-
-      return [
+      const lines = [
         `Videoname: ${meta.title}`,
         `Länge des Ausschnitts: ${meta.length}`,
         `Quelle: ${meta.source}`,
         `Transkribiert von: ${meta.author}`,
-        '',
-        speakersLine,
-        ''
-      ].join('\n');
+        `Sprecher: ${speakerPresets.join(', ')}`
+      ];
+      return lines.join('\n') + '\n\n';
+    }
+
+    function buildTranscriptTxt(rows) {
+      const timeWidth = 10;
+      const speakerWidth = 18;
+
+      return rows.map(r => {
+        const timePart = padRight(`[${r.time}]`, timeWidth);
+        const speakerPart = padRight(r.type === 'pause' ? 'Pause' : r.speaker, speakerWidth);
+        return `${timePart}   ${speakerPart}   ${r.utterance}`;
+      }).join('\n');
     }
 
     function downloadFile(content, filename, mimeType) {
@@ -855,13 +911,7 @@
 
     function exportTxt() {
       const rows = getRowsData();
-      const lines = rows.map(r => {
-        if (r.type === 'pause') {
-          return `[${r.time}] Pause (Dauer: ${r.duration})`;
-        }
-        return `[${r.time}] ${r.speaker ? r.speaker + ': ' : ''}${r.utterance}`;
-      });
-      const content = buildMetadataText() + lines.join('\n');
+      const content = buildMetadataText() + buildTranscriptTxt(rows);
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
     }
 
@@ -869,16 +919,21 @@
       const rows = getRowsData();
       const meta = getMetadata();
 
+      const speakerHeader = ['Sprecher'];
+      const speakerValues = speakerPresets.length ? speakerPresets : [''];
+
       const lines = [
         ['Metadaten', 'Wert'].map(escapeCsv).join(';'),
         ['Videoname', meta.title].map(escapeCsv).join(';'),
         ['Länge des Ausschnitts', meta.length].map(escapeCsv).join(';'),
         ['Quelle', meta.source].map(escapeCsv).join(';'),
         ['Transkribiert von', meta.author].map(escapeCsv).join(';'),
-        ['Sprecher', speakerPresets.join(' | ')].map(escapeCsv).join(';'),
         '',
-        ['Typ', 'Zeit', 'Sprecher', 'Äußerung', 'Dauer'].map(escapeCsv).join(';'),
-        ...rows.map(r => [r.type, r.time, r.speaker, r.utterance, r.duration].map(escapeCsv).join(';'))
+        speakerHeader.concat(speakerPresets.map(() => '')).map(escapeCsv).join(';'),
+        ['Sprecher'].concat(speakerValues).map(escapeCsv).join(';'),
+        '',
+        ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(';'),
+        ...rows.map(r => [r.time, r.type === 'pause' ? 'Pause' : r.speaker, r.utterance].map(escapeCsv).join(';'))
       ];
 
       const bom = '\uFEFF';
