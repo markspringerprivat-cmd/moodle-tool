@@ -72,7 +72,7 @@
       top: 0;
       height: 0;
       background: #2d6cdf;
-      transition: height 0.25s ease;
+      transition: height 0.2s ease;
     }
 
     .rail-dot {
@@ -917,7 +917,6 @@
     let youtubeApiReady = false;
     let youtubeTimeInterval = null;
     let videoVisible = true;
-
     let activeStepId = 'step1';
 
     const stepElements = {
@@ -935,6 +934,9 @@
       4: railDot4,
       5: railDot5
     };
+
+    let resizeObserver = null;
+    let mutationObserver = null;
 
     function scrollToStep(stepNumber) {
       const el = stepElements[stepNumber];
@@ -965,22 +967,21 @@
       updateRailLineVisuals();
     }
 
+    function requestRailSync() {
+      requestAnimationFrame(syncRailPositions);
+    }
+
     function updateRailLineVisuals() {
-      if (activeStepId) {
-        const activeNumber = Number(activeStepId.replace('step', ''));
-        const activeEndY = getDotCenterY(activeNumber);
-        railActive.style.top = '0px';
-        railActive.style.height = Math.max(0, activeEndY) + 'px';
-      } else {
-        railActive.style.top = '0px';
-        railActive.style.height = '0px';
-      }
+      const activeNumber = Number(activeStepId.replace('step', '')) || 1;
+      const activeEndY = getDotCenterY(activeNumber);
+
+      railActive.style.top = '0px';
+      railActive.style.height = Math.max(0, activeEndY) + 'px';
 
       for (let i = 1; i <= 5; i++) {
         railDots[i].classList.remove('is-active');
       }
 
-      const activeNumber = Number(activeStepId.replace('step', ''));
       for (let i = 1; i <= activeNumber; i++) {
         railDots[i].classList.add('is-active');
       }
@@ -991,8 +992,36 @@
       updateRailLineVisuals();
     }
 
+    function startLayoutObservers() {
+      const observedElements = [
+        mainContent,
+        step1, step2, step3, step4, step5,
+        videoShell, localVideo, youtubeContainer, tableBody, tableScrollWrap
+      ];
+
+      if ('ResizeObserver' in window) {
+        resizeObserver = new ResizeObserver(() => {
+          requestRailSync();
+        });
+        observedElements.forEach(el => {
+          if (el) resizeObserver.observe(el);
+        });
+      }
+
+      if ('MutationObserver' in window) {
+        mutationObserver = new MutationObserver(() => {
+          requestRailSync();
+        });
+        mutationObserver.observe(mainContent, {
+          childList: true,
+          subtree: true,
+          attributes: true
+        });
+      }
+    }
+
     function updateStepStates() {
-      requestAnimationFrame(syncRailPositions);
+      requestRailSync();
     }
 
     function openAnalysisPopup(prefilledPrompt) {
@@ -1038,7 +1067,7 @@
       if (!el) return;
       el.style.height = '38px';
       el.style.height = Math.max(38, el.scrollHeight) + 'px';
-      requestAnimationFrame(syncRailPositions);
+      requestRailSync();
     }
 
     function scrollTableToBottom() {
@@ -1087,7 +1116,7 @@
         });
       });
 
-      requestAnimationFrame(syncRailPositions);
+      requestRailSync();
     }
 
     function addSpeaker() {
@@ -1177,8 +1206,14 @@
     function attachTimeListeners(tr) {
       const timeInput = tr.querySelector('.time-input');
       if (timeInput) {
-        timeInput.addEventListener('input', updatePauseDurations);
-        timeInput.addEventListener('change', updatePauseDurations);
+        timeInput.addEventListener('input', () => {
+          updatePauseDurations();
+          requestRailSync();
+        });
+        timeInput.addEventListener('change', () => {
+          updatePauseDurations();
+          requestRailSync();
+        });
       }
     }
 
@@ -1204,7 +1239,12 @@
       if (blankSpeaker) tr.classList.add('continuation-row');
 
       const select = tr.querySelector('.speaker-select');
-      if (select) select.value = speaker;
+      if (select) {
+        select.value = speaker;
+        select.addEventListener('change', () => {
+          setActiveStep('step3');
+        });
+      }
 
       const textarea = tr.querySelector('.utterance-input');
       autoGrowTextarea(textarea);
@@ -1218,6 +1258,7 @@
         tr.querySelector('.time-input').value = formatTime(getCurrentTime());
         updatePauseDurations();
         setActiveStep('step3');
+        requestRailSync();
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
@@ -1257,6 +1298,7 @@
         tr.querySelector('.time-input').value = formatTime(getCurrentTime());
         updatePauseDurations();
         setActiveStep('step3');
+        requestRailSync();
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
@@ -1391,13 +1433,10 @@
           visibleSpeaker = 'Pause';
         } else if (r.speaker && r.speaker.trim() !== '') {
           visibleSpeaker = r.speaker.trim();
-        } else {
-          visibleSpeaker = '';
         }
 
         const speakerPart = String(visibleSpeaker).padEnd(speakerWidth, ' ');
         const prefix = timePart + gap + speakerPart + gap;
-
         const wrapped = wrapTextByWords(r.utterance || '', maxTextWidth);
 
         return wrapped.map((line, index) => {
@@ -1570,6 +1609,7 @@
         youtubeContainer.classList.remove('active', 'video-mode');
         controlsCard.classList.remove('active');
         controlsUnderVideo.classList.remove('active');
+        requestRailSync();
         return;
       }
 
@@ -1608,7 +1648,7 @@
       }
 
       updateControlLayout();
-      updateStepStates();
+      requestRailSync();
     }
 
     function setSourceStatus(text) {
@@ -1664,6 +1704,7 @@
             onReady: () => {
               setPlaybackRate(Number(speedSelect.value));
               updateTimeDisplay();
+              requestRailSync();
             }
           }
         });
@@ -1817,10 +1858,12 @@
       setActiveStep('step3');
       addRowSpeakerChange();
     });
+
     addSameSpeakerBtn.addEventListener('click', () => {
       setActiveStep('step3');
       addRowSameSpeaker();
     });
+
     addPauseBtn.addEventListener('click', () => {
       setActiveStep('step3');
       addPauseRow();
@@ -1872,26 +1915,22 @@
       if (!metaLength.value.trim() && isFinite(localVideo.duration)) {
         metaLength.value = formatTime(localVideo.duration);
       }
-      updateStepStates();
+      requestRailSync();
     });
 
-    window.addEventListener('load', () => {
-      syncRailPositions();
-    });
-
-    window.addEventListener('resize', () => {
-      requestAnimationFrame(syncRailPositions);
-    });
+    window.addEventListener('load', requestRailSync);
+    window.addEventListener('resize', requestRailSync);
 
     updateVideoVisibility();
     renderSpeakerTags();
     createStandardRow('', '', '');
     setActiveStep('step1');
+    startLayoutObservers();
     updateStepStates();
 
-    setTimeout(() => {
-      syncRailPositions();
-    }, 100);
+    setTimeout(requestRailSync, 100);
+    setTimeout(requestRailSync, 400);
+    setTimeout(requestRailSync, 900);
   </script>
 </body>
 </html>
