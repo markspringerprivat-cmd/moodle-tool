@@ -101,8 +101,9 @@
     }
 
     textarea {
-      min-height: 110px;
-      resize: vertical;
+      resize: none;
+      overflow-y: hidden;
+      line-height: 1.4;
     }
 
     .metadata-grid {
@@ -249,8 +250,14 @@
 
     .row-actions {
       display: flex;
+      flex-direction: row;
       gap: 6px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      align-items: center;
+    }
+
+    .row-actions .small-btn {
+      white-space: nowrap;
     }
 
     .top-actions {
@@ -265,7 +272,8 @@
     }
 
     .utterance-input {
-      min-height: 160px;
+      min-height: 38px;
+      height: 38px;
     }
 
     .table-add-row-wrap {
@@ -499,6 +507,11 @@
              String(secs).padStart(2, '0') + '.' + tenths;
     }
 
+    function autoGrowTextarea(el) {
+      el.style.height = '38px';
+      el.style.height = Math.max(38, el.scrollHeight) + 'px';
+    }
+
     function escapeCsv(value) {
       const text = String(value ?? '');
       return '"' + text.replace(/"/g, '""') + '"';
@@ -578,12 +591,16 @@
       });
     }
 
-    function createRow(time = '', speaker = '', utterance = '') {
+    function createRow(time = '', speaker = '', utterance = '', blankSpeaker = false) {
       const tr = document.createElement('tr');
+
+      const speakerCellContent = blankSpeaker
+        ? '<input type="text" class="speaker-blank" value="" readonly tabindex="-1" aria-label="Gleicher Sprecher" style="background:#f9f9f9; color:#777;">'
+        : `<select class="speaker-select">${buildSpeakerOptions(speaker)}</select>`;
 
       tr.innerHTML = `
         <td><input type="text" class="time-input" value="${escapeHtml(time)}"></td>
-        <td><select class="speaker-select">${buildSpeakerOptions(speaker)}</select></td>
+        <td>${speakerCellContent}</td>
         <td><textarea class="utterance-input" placeholder="Äußerung eingeben ...">${escapeHtml(utterance)}</textarea></td>
         <td>
           <div class="row-actions">
@@ -594,15 +611,21 @@
       `;
 
       const select = tr.querySelector('.speaker-select');
-      if (speaker && !speakerPresets.includes(speaker)) {
-        const opt = document.createElement('option');
-        opt.value = speaker;
-        opt.textContent = speaker;
-        opt.selected = true;
-        select.appendChild(opt);
-      } else {
-        select.value = speaker;
+      if (select) {
+        if (speaker && !speakerPresets.includes(speaker)) {
+          const opt = document.createElement('option');
+          opt.value = speaker;
+          opt.textContent = speaker;
+          opt.selected = true;
+          select.appendChild(opt);
+        } else {
+          select.value = speaker;
+        }
       }
+
+      const textarea = tr.querySelector('.utterance-input');
+      autoGrowTextarea(textarea);
+      textarea.addEventListener('input', () => autoGrowTextarea(textarea));
 
       tr.querySelector('.use-time-btn').addEventListener('click', () => {
         tr.querySelector('.time-input').value = formatTime(getCurrentTime());
@@ -617,14 +640,16 @@
     }
 
     function getLastSpeaker() {
-      const rows = tableBody.querySelectorAll('tr');
-      if (!rows.length) return '';
-      const lastRow = rows[rows.length - 1];
-      return lastRow.querySelector('.speaker-select').value.trim();
+      const rows = Array.from(tableBody.querySelectorAll('tr')).reverse();
+      for (const row of rows) {
+        const select = row.querySelector('.speaker-select');
+        if (select && select.value.trim()) return select.value.trim();
+      }
+      return '';
     }
 
     function addRowSameSpeaker() {
-      const row = createRow(formatTime(getCurrentTime()), getLastSpeaker(), '');
+      const row = createRow(formatTime(getCurrentTime()), '', '', true);
       row.querySelector('.utterance-input').focus();
     }
 
@@ -634,11 +659,31 @@
     }
 
     function getRowsData() {
-      return Array.from(tableBody.querySelectorAll('tr')).map(row => ({
-        time: row.querySelector('.time-input').value.trim(),
-        speaker: row.querySelector('.speaker-select').value.trim(),
-        utterance: row.querySelector('.utterance-input').value.trim()
-      }));
+      let currentSpeaker = '';
+
+      return Array.from(tableBody.querySelectorAll('tr')).map(row => {
+        const select = row.querySelector('.speaker-select');
+        const blank = row.querySelector('.speaker-blank');
+        const time = row.querySelector('.time-input').value.trim();
+        const utterance = row.querySelector('.utterance-input').value.trim();
+
+        let speaker = '';
+        let exportSpeaker = '';
+
+        if (select) {
+          speaker = select.value.trim();
+          currentSpeaker = speaker || currentSpeaker;
+          exportSpeaker = speaker;
+        } else if (blank) {
+          exportSpeaker = '';
+        }
+
+        return {
+          time,
+          speaker: exportSpeaker,
+          utterance
+        };
+      });
     }
 
     function getMetadata() {
@@ -681,7 +726,7 @@
 
     function exportTxt() {
       const rows = getRowsData();
-      const lines = rows.map(r => `[${r.time}] ${r.speaker}: ${r.utterance}`);
+      const lines = rows.map(r => `[${r.time}] ${r.speaker ? r.speaker + ': ' : ''}${r.utterance}`);
       const content = buildMetadataText() + lines.join('\n');
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
     }
