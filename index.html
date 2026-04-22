@@ -11,30 +11,33 @@
       background: #ffffff;
       font-family: Arial, sans-serif;
       color: #111;
+      overflow-y: auto;
     }
 
     body {
-      display: flex;
-      justify-content: center;
+      display: block;
     }
 
     .app {
-      width: min(1500px, 100%);
+      width: 100%;
+      max-width: none;
       padding: 24px;
       box-sizing: border-box;
+      margin: 0;
     }
 
     h1 {
-      text-align: center;
+      text-align: left;
       margin-top: 0;
       margin-bottom: 10px;
     }
 
     .intro {
-      text-align: center;
+      text-align: left;
       color: #444;
       margin-bottom: 24px;
       line-height: 1.5;
+      max-width: 900px;
     }
 
     .main-layout {
