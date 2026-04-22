@@ -19,7 +19,7 @@
     }
 
     .app {
-      width: min(1150px, 100%);
+      width: min(1400px, 100%);
       padding: 24px;
       box-sizing: border-box;
     }
@@ -37,8 +37,24 @@
       line-height: 1.5;
     }
 
+    .main-layout {
+      display: grid;
+      grid-template-columns: minmax(420px, 0.95fr) minmax(520px, 1.05fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .left-column,
+    .right-column {
+      min-width: 0;
+    }
+
     .section {
-      margin-top: 28px;
+      margin-top: 20px;
+    }
+
+    .section:first-child {
+      margin-top: 0;
     }
 
     .card {
@@ -75,13 +91,7 @@
 
     .grid-2 {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 16px;
     }
 
@@ -93,7 +103,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      align-items: center;
+      align-items: end;
       margin-top: 14px;
     }
 
@@ -125,6 +135,7 @@
       font-weight: bold;
       color: #333;
       min-width: 120px;
+      padding-bottom: 10px;
     }
 
     .hint {
@@ -197,9 +208,8 @@
       font-family: Consolas, monospace;
     }
 
-    @media (max-width: 850px) {
-      .grid-2,
-      .grid-3 {
+    @media (max-width: 1100px) {
+      .main-layout {
         grid-template-columns: 1fr;
       }
     }
@@ -212,100 +222,106 @@
       Video laden oder YouTube-Link einfügen, fein navigieren und das Transkript Zeile für Zeile erfassen.
     </p>
 
-    <div class="section card">
-      <div class="grid-2">
-        <div>
-          <label for="videoInput">Lokale Videodatei</label>
-          <input id="videoInput" type="file" accept="video/*" />
+    <div class="main-layout">
+      <div class="left-column">
+        <div class="section card">
+          <div class="grid-2">
+            <div>
+              <label for="videoInput">Lokale Videodatei</label>
+              <input id="videoInput" type="file" accept="video/*" />
+            </div>
+            <div>
+              <label for="youtubeUrl">YouTube-Link</label>
+              <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
+              <div class="row">
+                <button id="loadYoutubeBtn" type="button">YouTube laden</button>
+              </div>
+            </div>
+          </div>
+          <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
         </div>
-        <div>
-          <label for="youtubeUrl">YouTube-Link</label>
-          <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
-          <div class="row">
-            <button id="loadYoutubeBtn" type="button">YouTube laden</button>
+
+        <div class="section">
+          <video id="localVideo" controls></video>
+          <div id="youtubeContainer">
+            <div id="youtubePlayer"></div>
+          </div>
+
+          <div class="inline-controls">
+            <button id="playPauseBtn" type="button">Play / Pause</button>
+            <button id="backBtn" type="button" class="secondary">Zurück</button>
+            <button id="forwardBtn" type="button" class="secondary">Vor</button>
+            <button id="insertTimeBtn" type="button">Zeit in neue Zeile übernehmen</button>
+
+            <div class="time-display" id="timeDisplay">00:00.0</div>
+
+            <div>
+              <label for="skipSelect" style="margin:0 0 4px 0; font-weight:normal;">Sprungweite</label>
+              <select id="skipSelect">
+                <option value="0.5">0,5 Sek</option>
+                <option value="1" selected>1 Sek</option>
+                <option value="2">2 Sek</option>
+                <option value="5">5 Sek</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="speedSelect" style="margin:0 0 4px 0; font-weight:normal;">Tempo</label>
+              <select id="speedSelect">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2.0x</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="hint">
+            Tastatur: <span class="mono">Leertaste</span> = Play/Pause, <span class="mono">←</span> = zurück, <span class="mono">→</span> = vor.
+            Die Shortcuts greifen nicht, wenn du gerade in ein Textfeld schreibst.
           </div>
         </div>
       </div>
-      <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
-    </div>
 
-    <div class="section">
-      <video id="localVideo" controls></video>
-      <div id="youtubeContainer">
-        <div id="youtubePlayer"></div>
-      </div>
-
-      <div class="inline-controls">
-        <button id="playPauseBtn" type="button">Play / Pause</button>
-        <button id="backBtn" type="button" class="secondary">Zurück</button>
-        <button id="forwardBtn" type="button" class="secondary">Vor</button>
-        <button id="insertTimeBtn" type="button">Zeit in neue Zeile übernehmen</button>
-
-        <div class="time-display" id="timeDisplay">00:00.0</div>
-
-        <div>
-          <label for="skipSelect" style="margin:0 0 4px 0; font-weight:normal;">Sprungweite</label>
-          <select id="skipSelect">
-            <option value="0.5">0,5 Sek</option>
-            <option value="1" selected>1 Sek</option>
-            <option value="2">2 Sek</option>
-            <option value="5">5 Sek</option>
-          </select>
+      <div class="right-column">
+        <div class="section card">
+          <label for="speakerPresets">Sprecherliste</label>
+          <input
+            id="speakerPresets"
+            type="text"
+            value="Lehrkraft, Schüler 1, Schüler 2, Schüler 3, Schüler 4"
+            placeholder="Sprecher durch Komma trennen"
+          />
+          <div class="row">
+            <button id="applySpeakersBtn" type="button">Sprecher übernehmen</button>
+          </div>
+          <div class="hint">
+            Beispiel: Lehrkraft, Schüler 1, Schüler 2, Beobachter
+          </div>
         </div>
 
-        <div>
-          <label for="speedSelect" style="margin:0 0 4px 0; font-weight:normal;">Tempo</label>
-          <select id="speedSelect">
-            <option value="0.5">0.5x</option>
-            <option value="0.75">0.75x</option>
-            <option value="1" selected>1.0x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2">2.0x</option>
-          </select>
+        <div class="section">
+          <div class="top-actions">
+            <button id="addRowBtn" type="button">Neue Zeile</button>
+            <button id="exportTxtBtn" type="button">Als TXT exportieren</button>
+            <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 140px;">Zeit</th>
+                <th style="width: 220px;">Sprecher</th>
+                <th>Äußerung</th>
+                <th style="width: 150px;">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
         </div>
       </div>
-
-      <div class="hint">
-        Tastatur: <span class="mono">Leertaste</span> = Play/Pause, <span class="mono">←</span> = zurück, <span class="mono">→</span> = vor.
-        Die Shortcuts greifen nicht, wenn du gerade in ein Textfeld schreibst.
-      </div>
-    </div>
-
-    <div class="section card">
-      <label for="speakerPresets">Sprecherliste</label>
-      <input
-        id="speakerPresets"
-        type="text"
-        value="Lehrkraft, Schüler 1, Schüler 2, Schüler 3, Schüler 4"
-        placeholder="Sprecher durch Komma trennen"
-      />
-      <div class="row">
-        <button id="applySpeakersBtn" type="button">Sprecher übernehmen</button>
-      </div>
-      <div class="hint">
-        Beispiel: Lehrkraft, Schüler 1, Schüler 2, Beobachter
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="top-actions">
-        <button id="addRowBtn" type="button">Neue Zeile</button>
-        <button id="exportTxtBtn" type="button">Als TXT exportieren</button>
-        <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 140px;">Zeit</th>
-            <th style="width: 220px;">Sprecher</th>
-            <th>Äußerung</th>
-            <th style="width: 150px;">Aktionen</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
     </div>
   </div>
 
@@ -335,7 +351,7 @@
     const tableBody = document.getElementById('tableBody');
 
     let speakerPresets = [];
-    let currentSource = null; // "local" | "youtube" | null
+    let currentSource = null;
     let youtubePlayer = null;
     let youtubeApiReady = false;
     let youtubeTimeInterval = null;
@@ -459,7 +475,7 @@
     function exportTxt() {
       const rows = getRowsData();
       const lines = rows.map(r => `[${r.time}] ${r.speaker}: ${r.utterance}`);
-      downloadFile(lines.join('\n'), 'transkript.txt', 'text/plain;charset=utf-8');
+      downloadFile(lines.join('\\n'), 'transkript.txt', 'text/plain;charset=utf-8');
     }
 
     function exportCsv() {
@@ -468,7 +484,7 @@
         ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(','),
         ...rows.map(r => [r.time, r.speaker, r.utterance].map(escapeCsv).join(','))
       ];
-      downloadFile(lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+      downloadFile(lines.join('\\n'), 'transkript.csv', 'text/csv;charset=utf-8');
     }
 
     function getSkipAmount() {
