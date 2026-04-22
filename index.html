@@ -522,6 +522,7 @@
           </div>
 
           <div id="controlsUnderVideo" class="controls-under-video">
+            <button id="toggleVideoBtnBottom" type="button">Video einblenden</button>
             <button id="playPauseBtnBottom" type="button">Play / Pause</button>
             <button id="backBtnBottom" type="button" class="secondary">Zurück</button>
             <button id="forwardBtnBottom" type="button" class="secondary">Vor</button>
@@ -631,13 +632,13 @@
 
     const localVideo = document.getElementById('localVideo');
     const youtubeContainer = document.getElementById('youtubeContainer');
-    const youtubePlayerHost = document.getElementById('youtubePlayer');
     const videoShell = document.getElementById('videoShell');
     const controlsCard = document.getElementById('controlsCard');
     const controlsUnderVideo = document.getElementById('controlsUnderVideo');
     const tableScrollWrap = document.getElementById('tableScrollWrap');
 
     const toggleVideoBtn = document.getElementById('toggleVideoBtn');
+    const toggleVideoBtnBottom = document.getElementById('toggleVideoBtnBottom');
 
     const playPauseBtn = document.getElementById('playPauseBtn');
     const backBtn = document.getElementById('backBtn');
@@ -982,10 +983,50 @@
       ].join('\n') + '\n\n';
     }
 
+    function wrapTextByWords(text, maxLen) {
+      const input = String(text || '').trim();
+      if (!input) return [''];
+
+      const words = input.split(/\s+/);
+      const lines = [];
+      let current = '';
+
+      for (const word of words) {
+        if (!current) {
+          current = word;
+          continue;
+        }
+
+        if ((current + ' ' + word).length <= maxLen) {
+          current += ' ' + word;
+        } else {
+          lines.push(current);
+          current = word;
+        }
+      }
+
+      if (current) lines.push(current);
+      return lines;
+    }
+
     function buildTranscriptTxt(rows) {
+      const gap = '    ';
+      const timeWidth = 10;
+
+      const speakerValues = rows.map(r => r.type === 'pause' ? 'Pause' : (r.speaker || ''));
+      const speakerWidth = Math.max(8, ...speakerValues.map(v => String(v).length));
+      const maxTextWidth = 70;
+
       return rows.map(r => {
-        const speakerText = r.type === 'pause' ? 'Pause' : r.speaker;
-        return `[${r.time}]    ${speakerText}    ${r.utterance}`;
+        const timePart = String(`[${r.time}]`).padEnd(timeWidth, ' ');
+        const speakerPart = String(r.type === 'pause' ? 'Pause' : (r.speaker || '')).padEnd(speakerWidth, ' ');
+        const prefix = timePart + gap + speakerPart + gap;
+        const wrapped = wrapTextByWords(r.utterance || '', maxTextWidth);
+
+        return wrapped.map((line, index) => {
+          if (index === 0) return prefix + line;
+          return ' '.repeat(prefix.length) + line;
+        }).join('\n');
       }).join('\n');
     }
 
@@ -1014,11 +1055,11 @@
       const lines = [
         ['Metadaten', '', '', '', '', ''].map(escapeCsv).join(';'),
         ['', '', '', '', '', ''].map(escapeCsv).join(';'),
-        ['Videoname', meta.title, '', '', '', ''].map(escapeCsv).join(';'),
-        ['Länge des Ausschnitts', meta.length, '', '', '', ''].map(escapeCsv).join(';'),
-        ['Quelle', meta.source, '', '', '', ''].map(escapeCsv).join(';'),
-        ['Transkribiert von', meta.author, '', '', '', ''].map(escapeCsv).join(';'),
-        ['Sprecher'].concat(speakerPresets).map(escapeCsv).join(';'),
+        ['Videoname: ' + meta.title, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Länge des Ausschnitts: ' + meta.length, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Quelle: ' + meta.source, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Transkribiert von: ' + meta.author, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Sprecher: ' + speakerPresets.join(', '), '', '', '', '', ''].map(escapeCsv).join(';'),
         ['', '', '', '', '', ''].map(escapeCsv).join(';'),
         ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(';'),
         ...rows.map(r => [r.time, r.type === 'pause' ? 'Pause' : r.speaker, r.utterance].map(escapeCsv).join(';'))
@@ -1115,22 +1156,27 @@
           localVideo.classList.add('video-mode');
           localVideo.classList.remove('audio-only-local');
           toggleVideoBtn.textContent = 'Video ausblenden';
+          if (toggleVideoBtnBottom) toggleVideoBtnBottom.textContent = 'Video ausblenden';
         } else {
           localVideo.classList.remove('video-mode');
           localVideo.classList.add('audio-only-local');
           toggleVideoBtn.textContent = 'Video einblenden';
+          if (toggleVideoBtnBottom) toggleVideoBtnBottom.textContent = 'Video einblenden';
+          syncDisplays();
         }
       } else if (currentSource === 'youtube') {
         localVideo.classList.remove('active', 'video-mode', 'audio-only-local');
-        youtubeContainer.classList.add('active');
 
         if (videoVisible) {
-          youtubeContainer.classList.add('video-mode');
+          youtubeContainer.classList.add('active', 'video-mode');
           toggleVideoBtn.textContent = 'Video ausblenden';
+          if (toggleVideoBtnBottom) toggleVideoBtnBottom.textContent = 'Video ausblenden';
         } else {
           youtubeContainer.classList.remove('video-mode');
           youtubeContainer.classList.remove('active');
           toggleVideoBtn.textContent = 'Video einblenden';
+          if (toggleVideoBtnBottom) toggleVideoBtnBottom.textContent = 'Video einblenden';
+          syncDisplays();
         }
       }
 
@@ -1200,6 +1246,7 @@
       updateVideoVisibility();
       setSourceStatus('YouTube-Video geladen.');
       if (!metaSource.value.trim()) metaSource.value = url;
+      startYoutubeTimePolling();
     }
 
     function startYoutubeTimePolling() {
@@ -1222,6 +1269,7 @@
         const objectUrl = URL.createObjectURL(file);
         localVideo.src = objectUrl;
         localVideo.load();
+        stopYoutubeTimePolling();
         currentSource = 'local';
         videoVisible = true;
         updateVideoVisibility();
@@ -1247,6 +1295,13 @@
       videoVisible = !videoVisible;
       updateVideoVisibility();
     });
+
+    if (toggleVideoBtnBottom) {
+      toggleVideoBtnBottom.addEventListener('click', () => {
+        videoVisible = !videoVisible;
+        updateVideoVisibility();
+      });
+    }
 
     playPauseBtn.addEventListener('click', togglePlayPause);
     backBtn.addEventListener('click', () => stepBy(-getSkipAmount()));
