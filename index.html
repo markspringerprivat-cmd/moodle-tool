@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KI-Responder</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transkript-Feedback</title>
   <style>
     html, body {
       margin: 0;
@@ -21,33 +21,36 @@
     }
 
     .custom-app {
-      width: min(900px, 100%);
-      padding: 40px 24px;
+      width: min(980px, 100%);
+      padding: 36px 24px 48px;
       margin: 0 auto;
       box-sizing: border-box;
       background: #ffffff;
     }
 
-    .custom-app h1 {
-      margin-top: 0;
+    h1 {
+      margin: 0 0 10px;
       text-align: center;
+      font-size: 2.2rem;
     }
 
-    .custom-app p {
+    .intro {
       text-align: center;
-      margin-bottom: 20px;
+      margin: 0 0 24px;
+      color: #333;
+      line-height: 1.5;
     }
 
-    .custom-app label {
+    label {
       display: block;
       margin-bottom: 8px;
       font-weight: bold;
     }
 
-    .custom-app textarea {
+    textarea {
       width: 100%;
-      min-height: 220px;
-      padding: 12px;
+      min-height: 260px;
+      padding: 14px;
       border: 1px solid #bbbbbb;
       border-radius: 8px;
       box-sizing: border-box;
@@ -55,15 +58,16 @@
       font-size: 16px;
       font-family: Arial, sans-serif;
       background: #ffffff;
+      line-height: 1.5;
     }
 
     .button-row {
       text-align: center;
-      margin-top: 16px;
+      margin-top: 18px;
     }
 
-    .button-row button {
-      padding: 10px 18px;
+    button {
+      padding: 12px 20px;
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -72,7 +76,7 @@
       color: white;
     }
 
-    .button-row button:disabled {
+    button:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
@@ -80,13 +84,14 @@
     .status-box {
       margin-top: 16px;
       text-align: center;
-      color: #444444;
+      color: #444;
       min-height: 24px;
+      line-height: 1.4;
     }
 
     .response-box {
-      margin-top: 24px;
-      padding: 16px;
+      margin-top: 26px;
+      padding: 18px;
       border: 1px solid #dddddd;
       border-radius: 8px;
       background: #fafafa;
@@ -95,39 +100,57 @@
 
     .response-title {
       font-weight: bold;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      font-size: 1.05rem;
     }
 
     .response-text {
       white-space: pre-wrap;
-      line-height: 1.5;
+      line-height: 1.6;
+    }
+
+    .note {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+      line-height: 1.4;
     }
   </style>
 </head>
 <body>
   <div class="custom-app">
-    <h1>KI-Responder</h1>
-    <p>Gib einen Text ein und erhalte eine kurze Reaktion.</p>
+    <h1>Transkript-Feedback</h1>
+    <p class="intro">
+      Füge hier ein Gesprächstranskript ein. Das Modell reagiert in der Rolle
+      eines Fachleiters und gibt kurzes, strukturiertes Feedback.
+    </p>
 
-    <label for="meinText">Text eingeben:</label>
-    <textarea id="meinText" rows="10" placeholder="Hier deinen Text eingeben..."></textarea>
+    <label for="meinText">Transkript eingeben:</label>
+    <textarea
+      id="meinText"
+      placeholder="Hier das Transkript einfügen ..."
+    ></textarea>
 
     <div class="button-row">
-      <button id="sendBtn" type="button">Absenden</button>
+      <button id="sendBtn" type="button">Analysieren</button>
     </div>
 
     <div id="status" class="status-box"></div>
 
     <div id="responseBox" class="response-box">
-      <div class="response-title">Antwort</div>
+      <div class="response-title">Feedback</div>
       <div id="responseText" class="response-text"></div>
+    </div>
+
+    <div class="note">
+      Hinweis: Das Modell läuft lokal im Browser. Der erste Start kann etwas dauern.
     </div>
   </div>
 
   <script type="module">
     import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.1.0';
 
-    // Modelle nur vom Hub laden, nicht lokal suchen
     env.allowLocalModels = false;
 
     const textInput = document.getElementById('meinText');
@@ -136,58 +159,100 @@
     const responseBox = document.getElementById('responseBox');
     const responseText = document.getElementById('responseText');
 
-    let classifier = null;
-    let isLoading = false;
+    let generator = null;
+    let isRunning = false;
 
     async function ladeModell() {
-      if (classifier) return classifier;
-      statusBox.textContent = 'KI-Modell wird geladen ... Das kann beim ersten Mal etwas dauern.';
-      classifier = await pipeline(
-        'sentiment-analysis',
-        'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
-      );
-      statusBox.textContent = 'KI ist bereit.';
-      return classifier;
+      if (generator) return generator;
+
+      statusBox.textContent = 'Modell wird geladen ... Das kann beim ersten Start 1–3 Minuten dauern.';
+
+      try {
+        generator = await pipeline(
+          'text-generation',
+          'onnx-community/Llama-3.2-1B-Instruct-q4f16',
+          { device: 'webgpu' }
+        );
+        statusBox.textContent = 'Modell ist bereit.';
+        return generator;
+      } catch (webgpuError) {
+        console.warn('WebGPU fehlgeschlagen, wechsle zu Standard-Fallback.', webgpuError);
+
+        statusBox.textContent = 'WebGPU nicht verfügbar. Es wird der langsamere Browser-Fallback geladen ...';
+
+        generator = await pipeline(
+          'text-generation',
+          'onnx-community/Llama-3.2-1B-Instruct-q4f16'
+        );
+
+        statusBox.textContent = 'Modell ist bereit.';
+        return generator;
+      }
     }
 
-    function baueAntwort(label, score, originalText) {
-      const confidence = Math.round(score * 100);
+    function bauePrompt(transkript) {
+      return `Du bist ein Fachleiter in der Lehrerbildung.
 
-      if (label === 'POSITIVE') {
-        return `Die KI reagiert eher positiv auf deinen Text (${confidence}% Sicherheit).
+Bewerte das folgende Gesprächstranskript einer Lehrkraft sachlich, konstruktiv und knapp auf Deutsch.
 
-Kurze Rückmeldung:
-Dein Text wirkt insgesamt eher positiv oder konstruktiv. Wenn du willst, kannst du ihn noch präziser machen, damit die Aussage klarer wird.`;
+Gib deine Antwort in genau dieser Struktur aus:
+
+1. Gesamteindruck
+2. Stärken
+3. Schwächen
+4. Verbesserungsvorschläge
+
+Schreibe klar, konkret und ohne Einleitungssatz. Beziehe dich nur auf das Transkript.
+
+Transkript:
+${transkript}
+
+Feedback:`;
+    }
+
+    function bereinigeAntwort(fullText, prompt) {
+      if (!fullText) return 'Keine Antwort erzeugt.';
+      let text = fullText;
+
+      if (text.startsWith(prompt)) {
+        text = text.slice(prompt.length).trim();
       }
 
-      return `Die KI reagiert eher kritisch oder negativ auf deinen Text (${confidence}% Sicherheit).
-
-Kurze Rückmeldung:
-Dein Text wirkt eher belastet, kritisch oder negativ gefärbt. Du könntest ihn sachlicher oder klarer formulieren, wenn er neutraler klingen soll.`;
+      return text.trim() || 'Keine Antwort erzeugt.';
     }
 
     sendBtn.addEventListener('click', async () => {
       const input = textInput.value.trim();
 
       if (!input) {
-        statusBox.textContent = 'Bitte gib zuerst einen Text ein.';
+        statusBox.textContent = 'Bitte zuerst ein Transkript einfügen.';
         responseBox.style.display = 'none';
         return;
       }
 
-      if (isLoading) return;
+      if (isRunning) return;
 
       try {
-        isLoading = true;
+        isRunning = true;
         sendBtn.disabled = true;
-        statusBox.textContent = 'Text wird analysiert ...';
         responseBox.style.display = 'none';
+        statusBox.textContent = 'Analyse läuft ...';
 
         const pipe = await ladeModell();
-        const result = await pipe(input);
+        const prompt = bauePrompt(input);
 
-        const top = Array.isArray(result) ? result[0] : result;
-        const antwort = baueAntwort(top.label, top.score, input);
+        const result = await pipe(prompt, {
+          max_new_tokens: 260,
+          temperature: 0.2,
+          do_sample: false,
+          repetition_penalty: 1.1
+        });
+
+        const generated = Array.isArray(result)
+          ? result[0]?.generated_text
+          : result?.generated_text;
+
+        const antwort = bereinigeAntwort(generated, prompt);
 
         responseText.textContent = antwort;
         responseBox.style.display = 'block';
@@ -195,18 +260,18 @@ Dein Text wirkt eher belastet, kritisch oder negativ gefärbt. Du könntest ihn 
       } catch (error) {
         console.error(error);
         statusBox.textContent = 'Fehler beim Laden oder Ausführen des Modells.';
-        responseText.textContent = 'Die Browser-KI konnte gerade nicht geladen werden. Bitte versuche es erneut.';
+        responseText.textContent =
+          'Das lokale Modell konnte auf diesem Gerät oder in diesem Browser nicht sauber ausgeführt werden.';
         responseBox.style.display = 'block';
       } finally {
-        isLoading = false;
+        isRunning = false;
         sendBtn.disabled = false;
       }
     });
 
-    // Optional: Modell direkt beim Laden vorbereiten
     ladeModell().catch((err) => {
       console.error(err);
-      statusBox.textContent = 'Das KI-Modell konnte beim Start nicht vorgeladen werden.';
+      statusBox.textContent = 'Das Modell konnte nicht vorgeladen werden. Du kannst es später erneut versuchen.';
     });
   </script>
 </body>
