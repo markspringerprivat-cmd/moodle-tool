@@ -656,14 +656,18 @@
       rows.forEach((row, index) => {
         const speakerCell = row.children[1];
         if (!speakerCell) return;
+
         speakerCell.style.borderBottom = '';
         speakerCell.classList.remove('speaker-continuation');
-        if (row.classList.contains('continuation-row')) {
+
+        const isContinuation = row.classList.contains('continuation-row');
+        const prev = rows[index - 1];
+        const prevIsSpeech = prev && !prev.classList.contains('pause-row');
+        const prevAllowsContinuation = prev && !prev.classList.contains('pause-row');
+
+        if (isContinuation && prev && prevAllowsContinuation) {
           speakerCell.classList.add('speaker-continuation');
-          const prev = rows[index - 1];
-          if (prev && prev.children[1]) {
-            prev.children[1].style.borderBottom = 'none';
-          }
+          prev.children[1].style.borderBottom = 'none';
         }
       });
     }
@@ -760,6 +764,14 @@
     }
 
     function addRowSameSpeaker() {
+      const lastRow = tableBody.lastElementChild;
+      const afterPause = lastRow && lastRow.classList.contains('pause-row');
+
+      if (afterPause) {
+        addRowSpeakerChange();
+        return;
+      }
+
       const row = createStandardRow(formatTime(getCurrentTime()), '', '', true);
       row.querySelector('.utterance-input').focus();
     }
@@ -858,15 +870,15 @@
       const meta = getMetadata();
 
       const lines = [
-        ['Metadaten', 'Wert'].map(escapeCsv).join(','),
-        ['Videoname', meta.title].map(escapeCsv).join(','),
-        ['Länge des Ausschnitts', meta.length].map(escapeCsv).join(','),
-        ['Quelle', meta.source].map(escapeCsv).join(','),
-        ['Transkribiert von', meta.author].map(escapeCsv).join(','),
-        ['Sprecher', speakerPresets.join(' | ')].map(escapeCsv).join(','),
+        ['Metadaten', 'Wert'].map(escapeCsv).join(';'),
+        ['Videoname', meta.title].map(escapeCsv).join(';'),
+        ['Länge des Ausschnitts', meta.length].map(escapeCsv).join(';'),
+        ['Quelle', meta.source].map(escapeCsv).join(';'),
+        ['Transkribiert von', meta.author].map(escapeCsv).join(';'),
+        ['Sprecher', speakerPresets.join(' | ')].map(escapeCsv).join(';'),
         '',
-        ['Typ', 'Zeit', 'Sprecher', 'Äußerung', 'Dauer'].map(escapeCsv).join(','),
-        ...rows.map(r => [r.type, r.time, r.speaker, r.utterance, r.duration].map(escapeCsv).join(','))
+        ['Typ', 'Zeit', 'Sprecher', 'Äußerung', 'Dauer'].map(escapeCsv).join(';'),
+        ...rows.map(r => [r.type, r.time, r.speaker, r.utterance, r.duration].map(escapeCsv).join(';'))
       ];
 
       const bom = '\uFEFF';
