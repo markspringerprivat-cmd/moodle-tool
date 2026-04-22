@@ -39,7 +39,7 @@
 
     .main-layout {
       display: grid;
-      grid-template-columns: minmax(380px, 0.8fr) minmax(700px, 1.2fr);
+      grid-template-columns: minmax(380px, 0.78fr) minmax(760px, 1.22fr);
       gap: 24px;
       align-items: start;
     }
@@ -59,9 +59,16 @@
 
     .card {
       border: 1px solid #ddd;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 16px;
       background: #fff;
+    }
+
+    .compact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: end;
     }
 
     label {
@@ -76,7 +83,7 @@
     textarea {
       width: 100%;
       box-sizing: border-box;
-      padding: 10px;
+      padding: 10px 12px;
       border: 1px solid #bbb;
       border-radius: 8px;
       font-size: 15px;
@@ -89,10 +96,10 @@
       resize: vertical;
     }
 
-    .grid-2 {
+    .metadata-grid {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
     }
 
     .row {
@@ -119,6 +126,12 @@
 
     button.secondary {
       background: #666;
+    }
+
+    button.ghost {
+      background: #f0f4ff;
+      color: #2d6cdf;
+      border: 1px solid #cfdcff;
     }
 
     button.small-btn {
@@ -156,7 +169,7 @@
       width: 100%;
       max-height: 520px;
       background: #000;
-      border-radius: 10px;
+      border-radius: 12px;
     }
 
     #youtubeContainer {
@@ -172,6 +185,45 @@
 
     #localVideo {
       display: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .speaker-input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .speaker-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .speaker-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #f5f7fb;
+      border: 1px solid #d8dfeb;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+
+    .speaker-remove {
+      background: transparent;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+      font-size: 16px;
+      line-height: 1;
     }
 
     table {
@@ -210,11 +262,16 @@
     }
 
     .utterance-input {
-      min-height: 140px;
+      min-height: 160px;
     }
 
     @media (max-width: 1100px) {
       .main-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .compact-grid,
+      .metadata-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -230,11 +287,12 @@
     <div class="main-layout">
       <div class="left-column">
         <div class="section card">
-          <div class="grid-2">
+          <div class="compact-grid">
             <div>
               <label for="videoInput">Lokale Videodatei</label>
               <input id="videoInput" type="file" accept="video/*" />
             </div>
+
             <div>
               <label for="youtubeUrl">YouTube-Link</label>
               <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
@@ -243,6 +301,7 @@
               </div>
             </div>
           </div>
+
           <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
         </div>
 
@@ -251,7 +310,9 @@
           <div id="youtubeContainer">
             <div id="youtubePlayer"></div>
           </div>
+        </div>
 
+        <div id="controlsCard" class="section card hidden">
           <div class="inline-controls">
             <button id="playPauseBtn" type="button">Play / Pause</button>
             <button id="backBtn" type="button" class="secondary">Zurück</button>
@@ -284,28 +345,48 @@
           </div>
 
           <div class="hint">
-            Globale Shortcuts: <span class="mono">Alt + Leertaste</span> = Play/Pause,
-            <span class="mono">Alt + ←</span> = zurück,
-            <span class="mono">Alt + →</span> = vor,
-            <span class="mono">Alt + N</span> = Zeit in neue Zeile.
+            Globale Shortcuts: <span class="mono">Shift + Leertaste</span> = Play/Pause,
+            <span class="mono">Shift + ←</span> = zurück,
+            <span class="mono">Shift + →</span> = vor,
+            <span class="mono">Shift + N</span> = Zeit in neue Zeile.
           </div>
         </div>
       </div>
 
       <div class="right-column">
         <div class="section card">
-          <label for="speakerPresets">Sprecherliste</label>
-          <input
-            id="speakerPresets"
-            type="text"
-            value="Lehrkraft, Schüler 1, Schüler 2, Schüler 3, Schüler 4"
-            placeholder="Sprecher durch Komma trennen"
-          />
-          <div class="row">
-            <button id="applySpeakersBtn" type="button">Sprecher übernehmen</button>
+          <label>Metadaten</label>
+          <div class="metadata-grid">
+            <div>
+              <label for="metaTitle" style="font-weight:normal;">Videoname</label>
+              <input id="metaTitle" type="text" placeholder="z. B. Unterrichtsgespräch Klasse 7" />
+            </div>
+            <div>
+              <label for="metaLength" style="font-weight:normal;">Länge des Ausschnitts</label>
+              <input id="metaLength" type="text" placeholder="z. B. 03:25" />
+            </div>
+            <div>
+              <label for="metaSource" style="font-weight:normal;">Quelle</label>
+              <input id="metaSource" type="text" placeholder="z. B. Eigenes Video / YouTube-Link" />
+            </div>
+            <div>
+              <label for="metaAuthor" style="font-weight:normal;">Transkribiert von</label>
+              <input id="metaAuthor" type="text" placeholder="Name" />
+            </div>
           </div>
+        </div>
+
+        <div class="section card">
+          <label for="speakerInput">Sprecher hinzufügen</label>
+          <div class="speaker-input-row">
+            <input id="speakerInput" type="text" placeholder="z. B. Lehrkraft, Schüler 1, Schüler 2" />
+            <button id="addSpeakerBtn" type="button">+</button>
+          </div>
+
+          <div id="speakerTags" class="speaker-tags"></div>
+
           <div class="hint">
-            Beispiel: Lehrkraft, Schüler 1, Schüler 2, Beobachter
+            Erst Sprecher anlegen, dann unten in den Zeilen bequem per Dropdown auswählen.
           </div>
         </div>
 
@@ -320,7 +401,7 @@
             <thead>
               <tr>
                 <th style="width: 120px;">Zeit</th>
-                <th style="width: 180px;">Sprecher</th>
+                <th style="width: 190px;">Sprecher</th>
                 <th>Äußerung</th>
                 <th style="width: 150px;">Aktionen</th>
               </tr>
@@ -340,6 +421,7 @@
 
     const localVideo = document.getElementById('localVideo');
     const youtubeContainer = document.getElementById('youtubeContainer');
+    const controlsCard = document.getElementById('controlsCard');
 
     const playPauseBtn = document.getElementById('playPauseBtn');
     const backBtn = document.getElementById('backBtn');
@@ -349,15 +431,21 @@
     const speedSelect = document.getElementById('speedSelect');
     const timeDisplay = document.getElementById('timeDisplay');
 
-    const speakerPresetsInput = document.getElementById('speakerPresets');
-    const applySpeakersBtn = document.getElementById('applySpeakersBtn');
+    const metaTitle = document.getElementById('metaTitle');
+    const metaLength = document.getElementById('metaLength');
+    const metaSource = document.getElementById('metaSource');
+    const metaAuthor = document.getElementById('metaAuthor');
+
+    const speakerInput = document.getElementById('speakerInput');
+    const addSpeakerBtn = document.getElementById('addSpeakerBtn');
+    const speakerTags = document.getElementById('speakerTags');
 
     const addRowBtn = document.getElementById('addRowBtn');
     const exportTxtBtn = document.getElementById('exportTxtBtn');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
     const tableBody = document.getElementById('tableBody');
 
-    let speakerPresets = [];
+    let speakerPresets = ['Lehrkraft', 'Schüler 1', 'Schüler 2', 'Schüler 3', 'Schüler 4'];
     let currentSource = null;
     let youtubePlayer = null;
     let youtubeApiReady = false;
@@ -377,15 +465,52 @@
       return '"' + text.replace(/"/g, '""') + '"';
     }
 
-    function parseSpeakerPresets() {
-      speakerPresets = speakerPresetsInput.value
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+
+    function renderSpeakerTags() {
+      speakerTags.innerHTML = '';
+
+      speakerPresets.forEach((speaker, index) => {
+        const tag = document.createElement('div');
+        tag.className = 'speaker-tag';
+        tag.innerHTML = `
+          <span>${escapeHtml(speaker)}</span>
+          <button type="button" class="speaker-remove" data-index="${index}" aria-label="Sprecher entfernen">×</button>
+        `;
+        speakerTags.appendChild(tag);
+      });
+
+      speakerTags.querySelectorAll('.speaker-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const index = Number(btn.dataset.index);
+          speakerPresets.splice(index, 1);
+          renderSpeakerTags();
+          refreshAllSpeakerDropdowns();
+        });
+      });
+    }
+
+    function addSpeaker() {
+      const value = speakerInput.value.trim();
+      if (!value) return;
+      if (speakerPresets.includes(value)) {
+        speakerInput.value = '';
+        return;
+      }
+
+      speakerPresets.push(value);
+      speakerInput.value = '';
+      renderSpeakerTags();
+      refreshAllSpeakerDropdowns();
     }
 
     function buildSpeakerOptions(selected = '') {
-      parseSpeakerPresets();
       const options = ['<option value="">Bitte wählen</option>']
         .concat(
           speakerPresets.map(name => {
@@ -396,19 +521,12 @@
       return options.join('');
     }
 
-    function escapeHtml(text) {
-      return String(text)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;');
-    }
-
     function refreshAllSpeakerDropdowns() {
       const selects = tableBody.querySelectorAll('.speaker-select');
       selects.forEach(select => {
         const currentValue = select.value;
         select.innerHTML = buildSpeakerOptions(currentValue);
+
         if (speakerPresets.includes(currentValue)) {
           select.value = currentValue;
         } else if (currentValue) {
@@ -467,6 +585,26 @@
       }));
     }
 
+    function getMetadata() {
+      return {
+        title: metaTitle.value.trim(),
+        length: metaLength.value.trim(),
+        source: metaSource.value.trim(),
+        author: metaAuthor.value.trim()
+      };
+    }
+
+    function buildMetadataText() {
+      const meta = getMetadata();
+      return [
+        `Videoname: ${meta.title}`,
+        `Länge des Ausschnitts: ${meta.length}`,
+        `Quelle: ${meta.source}`,
+        `Transkribiert von: ${meta.author}`,
+        ''
+      ].join('\n');
+    }
+
     function downloadFile(content, filename, mimeType) {
       const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
@@ -482,16 +620,26 @@
     function exportTxt() {
       const rows = getRowsData();
       const lines = rows.map(r => `[${r.time}] ${r.speaker}: ${r.utterance}`);
-      downloadFile(lines.join('\\n'), 'transkript.txt', 'text/plain;charset=utf-8');
+      const content = buildMetadataText() + lines.join('\n');
+      downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
     }
 
     function exportCsv() {
       const rows = getRowsData();
+      const meta = getMetadata();
+
       const lines = [
+        ['Metadaten', 'Wert'].map(escapeCsv).join(','),
+        ['Videoname', meta.title].map(escapeCsv).join(','),
+        ['Länge des Ausschnitts', meta.length].map(escapeCsv).join(','),
+        ['Quelle', meta.source].map(escapeCsv).join(','),
+        ['Transkribiert von', meta.author].map(escapeCsv).join(','),
+        '',
         ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(','),
         ...rows.map(r => [r.time, r.speaker, r.utterance].map(escapeCsv).join(','))
       ];
-      downloadFile(lines.join('\\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+
+      downloadFile(lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
     }
 
     function getSkipAmount() {
@@ -502,11 +650,16 @@
       sourceStatus.textContent = text;
     }
 
+    function showControls() {
+      controlsCard.classList.remove('hidden');
+    }
+
     function showLocalVideo() {
       currentSource = 'local';
       localVideo.style.display = 'block';
       youtubeContainer.style.display = 'none';
       stopYoutubeTimePolling();
+      showControls();
     }
 
     function showYoutubeVideo() {
@@ -515,6 +668,7 @@
       localVideo.style.display = 'none';
       youtubeContainer.style.display = 'block';
       startYoutubeTimePolling();
+      showControls();
     }
 
     function getCurrentTime() {
@@ -627,6 +781,7 @@
 
       showYoutubeVideo();
       setSourceStatus('YouTube-Video geladen.');
+      if (!metaSource.value.trim()) metaSource.value = url;
     }
 
     function startYoutubeTimePolling() {
@@ -651,6 +806,9 @@
       showLocalVideo();
       setPlaybackRate(Number(speedSelect.value));
       setSourceStatus(`Lokales Video geladen: ${file.name}`);
+
+      if (!metaTitle.value.trim()) metaTitle.value = file.name;
+      if (!metaSource.value.trim()) metaSource.value = 'Lokale Videodatei';
     });
 
     loadYoutubeBtn.addEventListener('click', () => {
@@ -675,13 +833,17 @@
       setPlaybackRate(Number(speedSelect.value));
     });
 
+    addSpeakerBtn.addEventListener('click', addSpeaker);
+    speakerInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        addSpeaker();
+      }
+    });
+
     addRowBtn.addEventListener('click', () => {
       const row = createRow('', '', '');
       row.querySelector('.time-input').focus();
-    });
-
-    applySpeakersBtn.addEventListener('click', () => {
-      refreshAllSpeakerDropdowns();
     });
 
     exportTxtBtn.addEventListener('click', exportTxt);
@@ -691,10 +853,13 @@
     localVideo.addEventListener('loadedmetadata', () => {
       updateTimeDisplay();
       setPlaybackRate(Number(speedSelect.value));
+      if (!metaLength.value.trim() && isFinite(localVideo.duration)) {
+        metaLength.value = formatTime(localVideo.duration);
+      }
     });
 
     document.addEventListener('keydown', (event) => {
-      if (!event.altKey) return;
+      if (!event.shiftKey) return;
 
       if (event.code === 'Space') {
         event.preventDefault();
@@ -712,7 +877,7 @@
       }
     });
 
-    parseSpeakerPresets();
+    renderSpeakerTags();
     createRow('', 'Lehrkraft', '');
   </script>
 </body>
