@@ -600,6 +600,8 @@
       <div class="top-actions">
         <button id="exportTxtBtn" type="button">Als TXT exportieren</button>
         <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
+        <button id="copyTranscriptBtn" type="button" class="secondary">In Zwischenablage kopieren</button>
+        <button id="analyzeChatgptBtn" type="button">Fertiges Transkript mit ChatGPT analysieren lassen</button>
       </div>
 
       <div class="table-scroll-wrap" id="tableScrollWrap">
@@ -667,6 +669,9 @@
 
     const exportTxtBtn = document.getElementById('exportTxtBtn');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const copyTranscriptBtn = document.getElementById('copyTranscriptBtn');
+    const analyzeChatgptBtn = document.getElementById('analyzeChatgptBtn');
+
     const addSameSpeakerBtn = document.getElementById('addSameSpeakerBtn');
     const addSpeakerChangeBtn = document.getElementById('addSpeakerChangeBtn');
     const addPauseBtn = document.getElementById('addPauseBtn');
@@ -1012,7 +1017,6 @@
     function buildTranscriptTxt(rows) {
       const gap = '    ';
       const timeWidth = 10;
-
       const speakerValues = rows.map(r => r.type === 'pause' ? 'Pause' : (r.speaker || ''));
       const speakerWidth = Math.max(8, ...speakerValues.map(v => String(v).length));
       const maxTextWidth = 70;
@@ -1030,6 +1034,35 @@
       }).join('\n');
     }
 
+    function buildClipboardText() {
+      const rows = getRowsData();
+      return buildMetadataText() + buildTranscriptTxt(rows);
+    }
+
+    async function copyTextToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        const helper = document.createElement('textarea');
+        helper.value = text;
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        helper.style.left = '-9999px';
+        document.body.appendChild(helper);
+        helper.focus();
+        helper.select();
+        let ok = false;
+        try {
+          ok = document.execCommand('copy');
+        } catch {
+          ok = false;
+        }
+        document.body.removeChild(helper);
+        return ok;
+      }
+    }
+
     function downloadFile(content, filename, mimeType) {
       const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
@@ -1043,8 +1076,7 @@
     }
 
     function exportTxt() {
-      const rows = getRowsData();
-      const content = buildMetadataText() + buildTranscriptTxt(rows);
+      const content = buildClipboardText();
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
     }
 
@@ -1351,6 +1383,22 @@
 
     exportTxtBtn.addEventListener('click', exportTxt);
     exportCsvBtn.addEventListener('click', exportCsv);
+
+    copyTranscriptBtn.addEventListener('click', async () => {
+      const text = buildClipboardText();
+      const ok = await copyTextToClipboard(text);
+      setSourceStatus(ok ? 'Transkript wurde in die Zwischenablage kopiert.' : 'Kopieren in die Zwischenablage hat nicht funktioniert.');
+    });
+
+    analyzeChatgptBtn.addEventListener('click', async () => {
+      const text = buildClipboardText();
+      const ok = await copyTextToClipboard(text);
+      window.open('https://chatgpt.com/', '_blank', 'noopener');
+      setSourceStatus(ok
+        ? 'Transkript wurde kopiert. ChatGPT wurde in einem neuen Tab geöffnet.'
+        : 'ChatGPT wurde geöffnet. Das Kopieren in die Zwischenablage hat nicht funktioniert.'
+      );
+    });
 
     localVideo.addEventListener('timeupdate', updateTimeDisplay);
     localVideo.addEventListener('loadedmetadata', () => {
