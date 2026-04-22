@@ -293,10 +293,6 @@
       height: 100%;
     }
 
-    .hidden {
-      display: none !important;
-    }
-
     .controls-side {
       background: #ffffff;
       border: 1px solid #ddd;
@@ -919,6 +915,9 @@
     let videoVisible = true;
     let activeStepId = 'step1';
 
+    let resizeObserver = null;
+    let mutationObserver = null;
+
     const stepElements = {
       1: step1,
       2: step2,
@@ -934,9 +933,6 @@
       4: railDot4,
       5: railDot5
     };
-
-    let resizeObserver = null;
-    let mutationObserver = null;
 
     function scrollToStep(stepNumber) {
       const el = stepElements[stepNumber];
@@ -958,9 +954,12 @@
       const sections = [step1, step2, step3, step4, step5];
       progressRail.style.height = mainContent.offsetHeight + 'px';
 
+      const railRect = progressRail.getBoundingClientRect();
+
       sections.forEach((section, index) => {
         const dot = railDots[index + 1];
-        const centerY = section.offsetTop + (section.offsetHeight / 2);
+        const sectionRect = section.getBoundingClientRect();
+        const centerY = (sectionRect.top - railRect.top) + (sectionRect.height / 2);
         dot.style.top = centerY + 'px';
       });
 
@@ -968,7 +967,9 @@
     }
 
     function requestRailSync() {
-      requestAnimationFrame(syncRailPositions);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(syncRailPositions);
+      });
     }
 
     function updateRailLineVisuals() {
@@ -1003,6 +1004,7 @@
         resizeObserver = new ResizeObserver(() => {
           requestRailSync();
         });
+
         observedElements.forEach(el => {
           if (el) resizeObserver.observe(el);
         });
@@ -1012,6 +1014,7 @@
         mutationObserver = new MutationObserver(() => {
           requestRailSync();
         });
+
         mutationObserver.observe(mainContent, {
           childList: true,
           subtree: true,
@@ -1783,14 +1786,17 @@
       setActiveStep('step2');
       togglePlayPause();
     });
+
     backBtn.addEventListener('click', () => {
       setActiveStep('step2');
       stepBy(-getSkipAmount());
     });
+
     forwardBtn.addEventListener('click', () => {
       setActiveStep('step2');
       stepBy(getSkipAmount());
     });
+
     insertTimeBtn.addEventListener('click', () => {
       setActiveStep('step3');
       const row = createStandardRow(formatTime(getCurrentTime()), '', '');
@@ -1801,14 +1807,17 @@
       setActiveStep('step2');
       togglePlayPause();
     });
+
     backBtnBottom.addEventListener('click', () => {
       setActiveStep('step2');
       stepBy(-(Number(skipSelectBottom.value) || 1));
     });
+
     forwardBtnBottom.addEventListener('click', () => {
       setActiveStep('step2');
       stepBy(Number(skipSelectBottom.value) || 1);
     });
+
     insertTimeBtnBottom.addEventListener('click', () => {
       setActiveStep('step3');
       const row = createStandardRow(formatTime(getCurrentTime()), '', '');
@@ -1881,6 +1890,7 @@
       } else {
         setSourceStatus('Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
+
       setActiveStep('step4');
       updateStepStates();
     });
