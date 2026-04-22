@@ -72,7 +72,7 @@
       top: 0;
       height: 0;
       background: #2d6cdf;
-      transition: height 0.35s ease;
+      transition: height 0.25s ease;
     }
 
     .rail-dot {
@@ -86,7 +86,7 @@
       transform: translateY(-50%);
       cursor: pointer;
       padding: 0;
-      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .rail-dot.is-active {
@@ -273,12 +273,12 @@
     }
 
     #localVideo.audio-only-local {
-      height: 56px;
-      min-height: 56px;
-      max-height: 56px;
-      background: #fff;
+      height: 96px;
+      min-height: 96px;
+      max-height: 96px;
+      background: #000;
       object-fit: initial;
-      border-radius: 10px;
+      border-radius: 12px;
     }
 
     #youtubeContainer.video-mode {
@@ -617,6 +617,7 @@
         <button class="rail-dot" id="railDot2" type="button" aria-label="Schritt 2"></button>
         <button class="rail-dot" id="railDot3" type="button" aria-label="Schritt 3"></button>
         <button class="rail-dot" id="railDot4" type="button" aria-label="Schritt 4"></button>
+        <button class="rail-dot" id="railDot5" type="button" aria-label="Schritt 5"></button>
       </aside>
 
       <main class="main-content" id="mainContent">
@@ -658,7 +659,7 @@
           <div style="margin-top: 18px;">
             <label for="speakerInput">Sprecher hinzufügen</label>
             <div class="speaker-input-row">
-              <input id="speakerInput" type="text" placeholder="z. B. Lehrkraft, Schüler 1, Schüler 2" />
+              <input id="speakerInput" type="text" placeholder="z. B. Schüler 1" />
               <button id="addSpeakerBtn" type="button">+</button>
             </div>
             <div id="speakerTags" class="speaker-tags"></div>
@@ -774,12 +775,6 @@
         <div class="section card" id="step3">
           <div class="section-heading">Schritt 3: Transkript anlegen</div>
 
-          <div class="top-actions">
-            <button id="exportTxtBtn" type="button">TXT speichern</button>
-            <button id="exportCsvBtn" type="button" class="secondary">CSV speichern</button>
-            <button id="copyTranscriptBtn" type="button" class="secondary">In Zwischenablage kopieren</button>
-          </div>
-
           <div class="table-scroll-wrap" id="tableScrollWrap">
             <table>
               <thead>
@@ -802,7 +797,17 @@
         </div>
 
         <div class="section card" id="step4">
-          <div class="section-heading">Schritt 4: Mit ChatGPT analysieren</div>
+          <div class="section-heading">Schritt 4: Zwischenspeichern</div>
+
+          <div class="top-actions">
+            <button id="exportTxtBtn" type="button">TXT speichern</button>
+            <button id="exportCsvBtn" type="button" class="secondary">CSV speichern</button>
+            <button id="copyTranscriptBtn" type="button" class="secondary">In Zwischenablage kopieren</button>
+          </div>
+        </div>
+
+        <div class="section card" id="step5">
+          <div class="section-heading">Schritt 5: Mit ChatGPT analysieren</div>
 
           <div class="top-actions">
             <button id="analyzeChatgptBtn" type="button">Fertiges Transkript mit ChatGPT analysieren lassen</button>
@@ -898,11 +903,13 @@
     const step2 = document.getElementById('step2');
     const step3 = document.getElementById('step3');
     const step4 = document.getElementById('step4');
+    const step5 = document.getElementById('step5');
 
     const railDot1 = document.getElementById('railDot1');
     const railDot2 = document.getElementById('railDot2');
     const railDot3 = document.getElementById('railDot3');
     const railDot4 = document.getElementById('railDot4');
+    const railDot5 = document.getElementById('railDot5');
 
     let speakerPresets = [];
     let currentSource = null;
@@ -917,27 +924,28 @@
       1: step1,
       2: step2,
       3: step3,
-      4: step4
+      4: step4,
+      5: step5
     };
 
     const railDots = {
       1: railDot1,
       2: railDot2,
       3: railDot3,
-      4: railDot4
+      4: railDot4,
+      5: railDot5
     };
 
     function scrollToStep(stepNumber) {
       const el = stepElements[stepNumber];
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    railDot1.addEventListener('click', () => scrollToStep(1));
-    railDot2.addEventListener('click', () => scrollToStep(2));
-    railDot3.addEventListener('click', () => scrollToStep(3));
-    railDot4.addEventListener('click', () => scrollToStep(4));
+    railDot1.addEventListener('click', () => { setActiveStep('step1'); scrollToStep(1); });
+    railDot2.addEventListener('click', () => { setActiveStep('step2'); scrollToStep(2); });
+    railDot3.addEventListener('click', () => { setActiveStep('step3'); scrollToStep(3); });
+    railDot4.addEventListener('click', () => { setActiveStep('step4'); scrollToStep(4); });
+    railDot5.addEventListener('click', () => { setActiveStep('step5'); scrollToStep(5); });
 
     function getDotCenterY(stepNumber) {
       const dot = railDots[stepNumber];
@@ -945,15 +953,12 @@
     }
 
     function syncRailPositions() {
-      const sections = [step1, step2, step3, step4];
+      const sections = [step1, step2, step3, step4, step5];
       progressRail.style.height = mainContent.offsetHeight + 'px';
-
-      const railRect = progressRail.getBoundingClientRect();
 
       sections.forEach((section, index) => {
         const dot = railDots[index + 1];
-        const sectionRect = section.getBoundingClientRect();
-        const centerY = (sectionRect.top - railRect.top) + (sectionRect.height / 2);
+        const centerY = section.offsetTop + (section.offsetHeight / 2);
         dot.style.top = centerY + 'px';
       });
 
@@ -971,33 +976,19 @@
         railActive.style.height = '0px';
       }
 
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= 5; i++) {
         railDots[i].classList.remove('is-active');
-        if (activeStepId === 'step' + i) {
-          railDots[i].classList.add('is-active');
-        }
+      }
+
+      const activeNumber = Number(activeStepId.replace('step', ''));
+      for (let i = 1; i <= activeNumber; i++) {
+        railDots[i].classList.add('is-active');
       }
     }
 
     function setActiveStep(stepId) {
       activeStepId = stepId;
       updateRailLineVisuals();
-    }
-
-    function observeSections() {
-      const observer = new IntersectionObserver((entries) => {
-        const visible = entries
-          .filter(entry => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-
-        if (visible.length > 0) {
-          setActiveStep(visible[0].target.id);
-        }
-      }, {
-        threshold: [0.25, 0.45, 0.65]
-      });
-
-      [step1, step2, step3, step4].forEach(section => observer.observe(section));
     }
 
     function updateStepStates() {
@@ -1091,6 +1082,7 @@
           speakerPresets.splice(index, 1);
           renderSpeakerTags();
           refreshAllSpeakerDropdowns();
+          setActiveStep('step1');
           updateStepStates();
         });
       });
@@ -1109,6 +1101,7 @@
       speakerInput.value = '';
       renderSpeakerTags();
       refreshAllSpeakerDropdowns();
+      setActiveStep('step1');
       updateStepStates();
     }
 
@@ -1217,20 +1210,22 @@
       autoGrowTextarea(textarea);
       textarea.addEventListener('input', () => {
         autoGrowTextarea(textarea);
+        setActiveStep('step3');
         updateStepStates();
       });
 
       tr.querySelector('.use-time-btn').addEventListener('click', () => {
         tr.querySelector('.time-input').value = formatTime(getCurrentTime());
         updatePauseDurations();
+        setActiveStep('step3');
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
         tr.remove();
         repairSpeakerBorders();
         updatePauseDurations();
+        setActiveStep('step3');
         updateStepStates();
-        requestAnimationFrame(syncRailPositions);
       });
 
       attachTimeListeners(tr);
@@ -1238,8 +1233,8 @@
       repairSpeakerBorders();
       updatePauseDurations();
       scrollTableToBottom();
+      setActiveStep('step3');
       updateStepStates();
-      requestAnimationFrame(syncRailPositions);
       return tr;
     }
 
@@ -1261,14 +1256,15 @@
       tr.querySelector('.use-time-btn').addEventListener('click', () => {
         tr.querySelector('.time-input').value = formatTime(getCurrentTime());
         updatePauseDurations();
+        setActiveStep('step3');
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
         tr.remove();
         repairSpeakerBorders();
         updatePauseDurations();
+        setActiveStep('step3');
         updateStepStates();
-        requestAnimationFrame(syncRailPositions);
       });
 
       attachTimeListeners(tr);
@@ -1276,8 +1272,8 @@
       repairSpeakerBorders();
       updatePauseDurations();
       scrollTableToBottom();
+      setActiveStep('step3');
       updateStepStates();
-      requestAnimationFrame(syncRailPositions);
       return tr;
     }
 
@@ -1389,8 +1385,19 @@
 
       return rows.map(r => {
         const timePart = String(`[${r.time}]`).padEnd(timeWidth, ' ');
-        const speakerPart = String(r.type === 'pause' ? 'Pause' : (r.speaker || '')).padEnd(speakerWidth, ' ');
+
+        let visibleSpeaker = '';
+        if (r.type === 'pause') {
+          visibleSpeaker = 'Pause';
+        } else if (r.speaker && r.speaker.trim() !== '') {
+          visibleSpeaker = r.speaker.trim();
+        } else {
+          visibleSpeaker = '';
+        }
+
+        const speakerPart = String(visibleSpeaker).padEnd(speakerWidth, ' ');
         const prefix = timePart + gap + speakerPart + gap;
+
         const wrapped = wrapTextByWords(r.utterance || '', maxTextWidth);
 
         return wrapped.map((line, index) => {
@@ -1459,6 +1466,7 @@
       const rows = getRowsData();
       const content = buildMetadataTextFull() + buildTranscriptTxt(rows);
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
+      setActiveStep('step4');
       updateStepStates();
     }
 
@@ -1484,6 +1492,7 @@
 
       const bom = '\uFEFF';
       downloadFile(bom + lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+      setActiveStep('step4');
       updateStepStates();
     }
 
@@ -1599,6 +1608,7 @@
       }
 
       updateControlLayout();
+      updateStepStates();
     }
 
     function setSourceStatus(text) {
@@ -1665,6 +1675,7 @@
       setSourceStatus('YouTube-Video geladen.');
       if (!metaSource.value.trim()) metaSource.value = url;
       startYoutubeTimePolling();
+      setActiveStep('step2');
       updateStepStates();
     }
 
@@ -1698,6 +1709,7 @@
         if (!metaTitle.value.trim()) metaTitle.value = file.name;
         if (!metaSource.value.trim()) metaSource.value = 'Lokale Videodatei';
 
+        setActiveStep('step2');
         updateStepStates();
         return;
       }
@@ -1714,54 +1726,83 @@
 
     toggleVideoBtn.addEventListener('click', () => {
       videoVisible = !videoVisible;
+      setActiveStep('step2');
       updateVideoVisibility();
     });
 
     if (toggleVideoBtnBottom) {
       toggleVideoBtnBottom.addEventListener('click', () => {
         videoVisible = !videoVisible;
+        setActiveStep('step2');
         updateVideoVisibility();
       });
     }
 
-    playPauseBtn.addEventListener('click', togglePlayPause);
-    backBtn.addEventListener('click', () => stepBy(-getSkipAmount()));
-    forwardBtn.addEventListener('click', () => stepBy(getSkipAmount()));
+    playPauseBtn.addEventListener('click', () => {
+      setActiveStep('step2');
+      togglePlayPause();
+    });
+    backBtn.addEventListener('click', () => {
+      setActiveStep('step2');
+      stepBy(-getSkipAmount());
+    });
+    forwardBtn.addEventListener('click', () => {
+      setActiveStep('step2');
+      stepBy(getSkipAmount());
+    });
     insertTimeBtn.addEventListener('click', () => {
+      setActiveStep('step3');
       const row = createStandardRow(formatTime(getCurrentTime()), '', '');
       row.querySelector('.speaker-select').focus();
     });
 
-    playPauseBtnBottom.addEventListener('click', togglePlayPause);
-    backBtnBottom.addEventListener('click', () => stepBy(-(Number(skipSelectBottom.value) || 1)));
-    forwardBtnBottom.addEventListener('click', () => stepBy(Number(skipSelectBottom.value) || 1));
+    playPauseBtnBottom.addEventListener('click', () => {
+      setActiveStep('step2');
+      togglePlayPause();
+    });
+    backBtnBottom.addEventListener('click', () => {
+      setActiveStep('step2');
+      stepBy(-(Number(skipSelectBottom.value) || 1));
+    });
+    forwardBtnBottom.addEventListener('click', () => {
+      setActiveStep('step2');
+      stepBy(Number(skipSelectBottom.value) || 1);
+    });
     insertTimeBtnBottom.addEventListener('click', () => {
+      setActiveStep('step3');
       const row = createStandardRow(formatTime(getCurrentTime()), '', '');
       row.querySelector('.speaker-select').focus();
     });
 
     skipSelect.addEventListener('change', () => {
       skipSelectBottom.value = skipSelect.value;
+      setActiveStep('step2');
     });
 
     speedSelect.addEventListener('change', () => {
       speedSelectBottom.value = speedSelect.value;
       setPlaybackRate(Number(speedSelect.value));
+      setActiveStep('step2');
     });
 
     skipSelectBottom.addEventListener('change', () => {
       skipSelect.value = skipSelectBottom.value;
+      setActiveStep('step2');
     });
 
     speedSelectBottom.addEventListener('change', () => {
       speedSelect.value = speedSelectBottom.value;
       setPlaybackRate(Number(speedSelectBottom.value));
+      setActiveStep('step2');
     });
 
     [
       metaSubject, metaClass, metaTopic, metaTitle, metaLength, metaSource, metaAuthor
     ].forEach(el => {
-      el.addEventListener('input', updateStepStates);
+      el.addEventListener('input', () => {
+        setActiveStep('step1');
+        updateStepStates();
+      });
     });
 
     addSpeakerBtn.addEventListener('click', addSpeaker);
@@ -1772,9 +1813,18 @@
       }
     });
 
-    addSpeakerChangeBtn.addEventListener('click', addRowSpeakerChange);
-    addSameSpeakerBtn.addEventListener('click', addRowSameSpeaker);
-    addPauseBtn.addEventListener('click', addPauseRow);
+    addSpeakerChangeBtn.addEventListener('click', () => {
+      setActiveStep('step3');
+      addRowSpeakerChange();
+    });
+    addSameSpeakerBtn.addEventListener('click', () => {
+      setActiveStep('step3');
+      addRowSameSpeaker();
+    });
+    addPauseBtn.addEventListener('click', () => {
+      setActiveStep('step3');
+      addPauseRow();
+    });
 
     exportTxtBtn.addEventListener('click', exportTxt);
     exportCsvBtn.addEventListener('click', exportCsv);
@@ -1788,10 +1838,12 @@
       } else {
         setSourceStatus('Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
+      setActiveStep('step4');
       updateStepStates();
     });
 
     analyzeChatgptBtn.addEventListener('click', () => {
+      setActiveStep('step5');
       openAnalysisPopup(buildDefaultAnalysisPrompt());
     });
 
@@ -1808,6 +1860,7 @@
         setSourceStatus('ChatGPT wurde geöffnet. Das Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
 
+      setActiveStep('step5');
       updateStepStates();
       closeAnalysisPopup();
     });
@@ -1833,7 +1886,6 @@
     updateVideoVisibility();
     renderSpeakerTags();
     createStandardRow('', '', '');
-    observeSections();
     setActiveStep('step1');
     updateStepStates();
 
