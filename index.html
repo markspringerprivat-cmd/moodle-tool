@@ -12,6 +12,7 @@
       font-family: Arial, sans-serif;
       color: #111;
       overflow-y: auto;
+      scroll-behavior: smooth;
     }
 
     body {
@@ -39,8 +40,102 @@
       max-width: 1200px;
     }
 
+    .layout {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .stepper {
+      position: sticky;
+      top: 12px;
+      align-self: start;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      background: #fff;
+      padding: 16px;
+    }
+
+    .stepper-title {
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .stepper-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .step-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #111;
+      border: 1px solid #e3e3e3;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .step-link:hover {
+      background: #f8fbff;
+    }
+
+    .step-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 2px solid #b9c7dd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: bold;
+      color: #567;
+      flex: 0 0 auto;
+      background: #fff;
+    }
+
+    .step-link.done .step-circle {
+      background: #2d6cdf;
+      border-color: #2d6cdf;
+      color: #fff;
+    }
+
+    .step-link.active-step {
+      border-color: #2d6cdf;
+      box-shadow: 0 0 0 2px rgba(45,108,223,0.12);
+    }
+
+    .step-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .step-label {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .step-sub {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.35;
+    }
+
+    .main-content {
+      min-width: 0;
+    }
+
     .section {
       margin-top: 18px;
+      scroll-margin-top: 12px;
     }
 
     .card {
@@ -48,6 +143,12 @@
       border-radius: 12px;
       padding: 16px;
       background: #fff;
+    }
+
+    .section-heading {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 0 0 12px 0;
     }
 
     .metadata-grid {
@@ -482,6 +583,14 @@
     }
 
     @media (max-width: 1200px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .stepper {
+        position: static;
+      }
+
       .metadata-grid {
         grid-template-columns: 1fr 1fr;
       }
@@ -526,181 +635,230 @@
       Video laden oder YouTube-Link einfügen, fein navigieren und das Transkript Zeile für Zeile erfassen.
     </p>
 
-    <div class="section card">
-      <label>Metadaten</label>
-      <div class="metadata-grid">
-        <div>
-          <label for="metaSubject" style="font-weight:normal;">Unterrichtsfach</label>
-          <input id="metaSubject" type="text" placeholder="z. B. Deutsch" />
-        </div>
-        <div>
-          <label for="metaClass" style="font-weight:normal;">Klasse</label>
-          <input id="metaClass" type="text" placeholder="z. B. 7a" />
-        </div>
-        <div>
-          <label for="metaTopic" style="font-weight:normal;">Unterrichtsthema</label>
-          <input id="metaTopic" type="text" placeholder="z. B. Argumentieren im Unterrichtsgespräch" />
-        </div>
-        <div>
-          <label for="metaTitle" style="font-weight:normal;">Videoname</label>
-          <input id="metaTitle" type="text" placeholder="z. B. Unterrichtsgespräch Klasse 7" />
-        </div>
-        <div>
-          <label for="metaLength" style="font-weight:normal;">Länge des Ausschnitts</label>
-          <input id="metaLength" type="text" placeholder="z. B. 03:25" />
-        </div>
-        <div>
-          <label for="metaSource" style="font-weight:normal;">Quelle</label>
-          <input id="metaSource" type="text" placeholder="z. B. Eigenes Video / YouTube-Link" />
-        </div>
-        <div>
-          <label for="metaAuthor" style="font-weight:normal;">Transkribiert von</label>
-          <input id="metaAuthor" type="text" placeholder="Name" />
-        </div>
-      </div>
-    </div>
+    <div class="layout">
+      <aside class="stepper">
+        <div class="stepper-title">Schritte</div>
+        <div class="stepper-list">
+          <a href="#step1" class="step-link" id="stepLink1">
+            <div class="step-circle">1</div>
+            <div class="step-text">
+              <div class="step-label">Metadaten und Sprecher</div>
+              <div class="step-sub">Metadaten eintragen und Sprecher anlegen</div>
+            </div>
+          </a>
 
-    <div class="section card">
-      <label for="speakerInput">Sprecher hinzufügen</label>
-      <div class="speaker-input-row">
-        <input id="speakerInput" type="text" placeholder="z. B. Lehrkraft, Schüler 1, Schüler 2" />
-        <button id="addSpeakerBtn" type="button">+</button>
-      </div>
+          <a href="#step2" class="step-link" id="stepLink2">
+            <div class="step-circle">2</div>
+            <div class="step-text">
+              <div class="step-label">Video importieren</div>
+              <div class="step-sub">Lokale Datei oder YouTube-Link laden</div>
+            </div>
+          </a>
 
-      <div id="speakerTags" class="speaker-tags"></div>
-    </div>
+          <a href="#step3" class="step-link" id="stepLink3">
+            <div class="step-circle">3</div>
+            <div class="step-text">
+              <div class="step-label">Transkript anlegen</div>
+              <div class="step-sub">Zeilen erfassen und bearbeiten</div>
+            </div>
+          </a>
 
-    <div class="section card">
-      <div class="source-grid">
-        <div class="field-group">
-          <label for="videoInput">Lokale Videodatei</label>
-          <input id="videoInput" type="file" accept="video/*" />
+          <a href="#step4" class="step-link" id="stepLink4">
+            <div class="step-circle">4</div>
+            <div class="step-text">
+              <div class="step-label">Mit ChatGPT analysieren</div>
+              <div class="step-sub">Fertiges Transkript kopieren und auswerten</div>
+            </div>
+          </a>
         </div>
+      </aside>
 
-        <div class="field-group">
-          <label for="youtubeUrl">YouTube-Link</label>
-          <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
-        </div>
-
-        <div class="field-group">
-          <label style="visibility:hidden;">Aktion</label>
-          <button id="loadSourceBtn" type="button">Video laden</button>
-        </div>
-      </div>
-
-      <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
-
-      <div class="video-panel">
-        <div class="video-column">
-          <div id="videoShell" class="video-shell">
-            <video id="localVideo" controls></video>
-            <div id="youtubeContainer">
-              <div id="youtubePlayer"></div>
+      <main class="main-content">
+        <div class="section card" id="step1">
+          <div class="section-heading">Schritt 1: Metadaten und Sprecher</div>
+          <label>Metadaten</label>
+          <div class="metadata-grid">
+            <div>
+              <label for="metaSubject" style="font-weight:normal;">Unterrichtsfach</label>
+              <input id="metaSubject" type="text" placeholder="z. B. Deutsch" />
+            </div>
+            <div>
+              <label for="metaClass" style="font-weight:normal;">Klasse</label>
+              <input id="metaClass" type="text" placeholder="z. B. 7a" />
+            </div>
+            <div>
+              <label for="metaTopic" style="font-weight:normal;">Unterrichtsthema</label>
+              <input id="metaTopic" type="text" placeholder="z. B. Argumentieren im Unterrichtsgespräch" />
+            </div>
+            <div>
+              <label for="metaTitle" style="font-weight:normal;">Videoname</label>
+              <input id="metaTitle" type="text" placeholder="z. B. Unterrichtsgespräch Klasse 7" />
+            </div>
+            <div>
+              <label for="metaLength" style="font-weight:normal;">Länge des Ausschnitts</label>
+              <input id="metaLength" type="text" placeholder="z. B. 03:25" />
+            </div>
+            <div>
+              <label for="metaSource" style="font-weight:normal;">Quelle</label>
+              <input id="metaSource" type="text" placeholder="z. B. Eigenes Video / YouTube-Link" />
+            </div>
+            <div>
+              <label for="metaAuthor" style="font-weight:normal;">Transkribiert von</label>
+              <input id="metaAuthor" type="text" placeholder="Name" />
             </div>
           </div>
 
-          <div id="controlsUnderVideo" class="controls-under-video">
-            <button id="toggleVideoBtnBottom" type="button">Video einblenden</button>
-            <button id="playPauseBtnBottom" type="button">Play / Pause</button>
-            <button id="backBtnBottom" type="button" class="secondary">Zurück</button>
-            <button id="forwardBtnBottom" type="button" class="secondary">Vor</button>
-            <button id="insertTimeBtnBottom" type="button">Zeit übernehmen</button>
+          <div style="margin-top: 18px;">
+            <label for="speakerInput">Sprecher hinzufügen</label>
+            <div class="speaker-input-row">
+              <input id="speakerInput" type="text" placeholder="z. B. Lehrkraft, Schüler 1, Schüler 2" />
+              <button id="addSpeakerBtn" type="button">+</button>
+            </div>
+            <div id="speakerTags" class="speaker-tags"></div>
+          </div>
+        </div>
 
-            <div class="control-group">
-              <label>Aktuelle Zeit</label>
-              <div class="time-box" id="timeDisplayBottom">00:00.0</div>
+        <div class="section card" id="step2">
+          <div class="section-heading">Schritt 2: Video importieren</div>
+          <div class="source-grid">
+            <div class="field-group">
+              <label for="videoInput">Lokale Videodatei</label>
+              <input id="videoInput" type="file" accept="video/*" />
             </div>
 
-            <div class="control-group">
-              <label for="skipSelectBottom">Sprungweite</label>
-              <select id="skipSelectBottom">
-                <option value="0.5">0,5 Sek</option>
-                <option value="1" selected>1 Sek</option>
-                <option value="2">2 Sek</option>
-                <option value="5">5 Sek</option>
-              </select>
+            <div class="field-group">
+              <label for="youtubeUrl">YouTube-Link</label>
+              <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
             </div>
 
-            <div class="control-group">
-              <label for="speedSelectBottom">Tempo</label>
-              <select id="speedSelectBottom">
-                <option value="0.5">0.5x</option>
-                <option value="0.75">0.75x</option>
-                <option value="1" selected>1.0x</option>
-                <option value="1.25">1.25x</option>
-                <option value="1.5">1.5x</option>
-                <option value="2">2.0x</option>
-              </select>
+            <div class="field-group">
+              <label style="visibility:hidden;">Aktion</label>
+              <button id="loadSourceBtn" type="button">Video laden</button>
+            </div>
+          </div>
+
+          <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
+
+          <div class="video-panel">
+            <div class="video-column">
+              <div id="videoShell" class="video-shell">
+                <video id="localVideo" controls></video>
+                <div id="youtubeContainer">
+                  <div id="youtubePlayer"></div>
+                </div>
+              </div>
+
+              <div id="controlsUnderVideo" class="controls-under-video">
+                <button id="toggleVideoBtnBottom" type="button">Video einblenden</button>
+                <button id="playPauseBtnBottom" type="button">Play / Pause</button>
+                <button id="backBtnBottom" type="button" class="secondary">Zurück</button>
+                <button id="forwardBtnBottom" type="button" class="secondary">Vor</button>
+                <button id="insertTimeBtnBottom" type="button">Zeit übernehmen</button>
+
+                <div class="control-group">
+                  <label>Aktuelle Zeit</label>
+                  <div class="time-box" id="timeDisplayBottom">00:00.0</div>
+                </div>
+
+                <div class="control-group">
+                  <label for="skipSelectBottom">Sprungweite</label>
+                  <select id="skipSelectBottom">
+                    <option value="0.5">0,5 Sek</option>
+                    <option value="1" selected>1 Sek</option>
+                    <option value="2">2 Sek</option>
+                    <option value="5">5 Sek</option>
+                  </select>
+                </div>
+
+                <div class="control-group">
+                  <label for="speedSelectBottom">Tempo</label>
+                  <select id="speedSelectBottom">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1.0x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2.0x</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div id="controlsCard" class="controls-side">
+              <div class="controls-stack">
+                <button id="toggleVideoBtn" type="button">Video ausblenden</button>
+                <button id="playPauseBtn" type="button">Play / Pause</button>
+                <button id="backBtn" type="button" class="secondary">Zurück</button>
+                <button id="forwardBtn" type="button" class="secondary">Vor</button>
+                <button id="insertTimeBtn" type="button">Zeit übernehmen</button>
+
+                <div class="control-group">
+                  <label>Aktuelle Zeit</label>
+                  <div class="time-box" id="timeDisplay">00:00.0</div>
+                </div>
+
+                <div class="control-group">
+                  <label for="skipSelect">Sprungweite</label>
+                  <select id="skipSelect">
+                    <option value="0.5">0,5 Sek</option>
+                    <option value="1" selected>1 Sek</option>
+                    <option value="2">2 Sek</option>
+                    <option value="5">5 Sek</option>
+                  </select>
+                </div>
+
+                <div class="control-group">
+                  <label for="speedSelect">Tempo</label>
+                  <select id="speedSelect">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1.0x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2.0x</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div id="controlsCard" class="controls-side">
-          <div class="controls-stack">
-            <button id="toggleVideoBtn" type="button">Video ausblenden</button>
-            <button id="playPauseBtn" type="button">Play / Pause</button>
-            <button id="backBtn" type="button" class="secondary">Zurück</button>
-            <button id="forwardBtn" type="button" class="secondary">Vor</button>
-            <button id="insertTimeBtn" type="button">Zeit übernehmen</button>
+        <div class="section card" id="step3">
+          <div class="section-heading">Schritt 3: Transkript anlegen</div>
+          <div class="top-actions">
+            <button id="exportTxtBtn" type="button">Als TXT exportieren</button>
+            <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
+            <button id="copyTranscriptBtn" type="button" class="secondary">In Zwischenablage kopieren</button>
+          </div>
 
-            <div class="control-group">
-              <label>Aktuelle Zeit</label>
-              <div class="time-box" id="timeDisplay">00:00.0</div>
-            </div>
+          <div class="table-scroll-wrap" id="tableScrollWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 120px;">Zeit</th>
+                  <th style="width: 190px;">Sprecher</th>
+                  <th>Äußerung</th>
+                  <th style="width: 160px;">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
 
-            <div class="control-group">
-              <label for="skipSelect">Sprungweite</label>
-              <select id="skipSelect">
-                <option value="0.5">0,5 Sek</option>
-                <option value="1" selected>1 Sek</option>
-                <option value="2">2 Sek</option>
-                <option value="5">5 Sek</option>
-              </select>
-            </div>
-
-            <div class="control-group">
-              <label for="speedSelect">Tempo</label>
-              <select id="speedSelect">
-                <option value="0.5">0.5x</option>
-                <option value="0.75">0.75x</option>
-                <option value="1" selected>1.0x</option>
-                <option value="1.25">1.25x</option>
-                <option value="1.5">1.5x</option>
-                <option value="2">2.0x</option>
-              </select>
-            </div>
+          <div class="table-add-row-wrap">
+            <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Sprecherwechsel</button>
+            <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Gleicher Sprecher</button>
+            <button id="addPauseBtn" type="button" class="table-add-row">+ Pause</button>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="section">
-      <div class="top-actions">
-        <button id="exportTxtBtn" type="button">Als TXT exportieren</button>
-        <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
-        <button id="copyTranscriptBtn" type="button" class="secondary">In Zwischenablage kopieren</button>
-        <button id="analyzeChatgptBtn" type="button">Fertiges Transkript mit ChatGPT analysieren lassen</button>
-      </div>
-
-      <div class="table-scroll-wrap" id="tableScrollWrap">
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 120px;">Zeit</th>
-              <th style="width: 190px;">Sprecher</th>
-              <th>Äußerung</th>
-              <th style="width: 160px;">Aktionen</th>
-            </tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-      </div>
-
-      <div class="table-add-row-wrap">
-        <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Sprecherwechsel</button>
-        <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Gleicher Sprecher</button>
-        <button id="addPauseBtn" type="button" class="table-add-row">+ Pause</button>
-      </div>
+        <div class="section card" id="step4">
+          <div class="section-heading">Schritt 4: Mit ChatGPT analysieren</div>
+          <div class="top-actions">
+            <button id="analyzeChatgptBtn" type="button">Fertiges Transkript mit ChatGPT analysieren lassen</button>
+          </div>
+        </div>
+      </main>
     </div>
   </div>
 
@@ -782,12 +940,70 @@
     const cancelPopupBtn = document.getElementById('cancelPopupBtn');
     const continueChatgptBtn = document.getElementById('continueChatgptBtn');
 
+    const stepLink1 = document.getElementById('stepLink1');
+    const stepLink2 = document.getElementById('stepLink2');
+    const stepLink3 = document.getElementById('stepLink3');
+    const stepLink4 = document.getElementById('stepLink4');
+
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+    const step4 = document.getElementById('step4');
+
     let speakerPresets = [];
     let currentSource = null;
     let youtubePlayer = null;
     let youtubeApiReady = false;
     let youtubeTimeInterval = null;
     let videoVisible = true;
+    let step4Done = false;
+
+    function setDone(link, done) {
+      link.classList.toggle('done', done);
+    }
+
+    function setActiveStep(stepId) {
+      [stepLink1, stepLink2, stepLink3, stepLink4].forEach(el => el.classList.remove('active-step'));
+      if (stepId === 'step1') stepLink1.classList.add('active-step');
+      if (stepId === 'step2') stepLink2.classList.add('active-step');
+      if (stepId === 'step3') stepLink3.classList.add('active-step');
+      if (stepId === 'step4') stepLink4.classList.add('active-step');
+    }
+
+    function updateStepStates() {
+      const metaDone =
+        metaSubject.value.trim() !== '' &&
+        metaClass.value.trim() !== '' &&
+        metaTopic.value.trim() !== '' &&
+        speakerPresets.length > 0;
+
+      const videoDone = currentSource !== null;
+
+      const transcriptDone = Array.from(tableBody.querySelectorAll('.utterance-input'))
+        .some(el => el.value.trim() !== '');
+
+      setDone(stepLink1, metaDone);
+      setDone(stepLink2, videoDone);
+      setDone(stepLink3, transcriptDone);
+      setDone(stepLink4, step4Done);
+    }
+
+    function observeSections() {
+      const sections = [step1, step2, step3, step4];
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries
+          .filter(entry => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+        if (visible.length > 0) {
+          setActiveStep(visible[0].target.id);
+        }
+      }, {
+        threshold: [0.2, 0.4, 0.6]
+      });
+
+      sections.forEach(section => observer.observe(section));
+    }
 
     function openAnalysisPopup(prefilledPrompt) {
       popupPromptEditor.value = prefilledPrompt;
@@ -875,6 +1091,7 @@
           speakerPresets.splice(index, 1);
           renderSpeakerTags();
           refreshAllSpeakerDropdowns();
+          updateStepStates();
         });
       });
     }
@@ -890,6 +1107,7 @@
       speakerInput.value = '';
       renderSpeakerTags();
       refreshAllSpeakerDropdowns();
+      updateStepStates();
     }
 
     function buildSpeakerOptions(selected = '') {
@@ -995,7 +1213,10 @@
 
       const textarea = tr.querySelector('.utterance-input');
       autoGrowTextarea(textarea);
-      textarea.addEventListener('input', () => autoGrowTextarea(textarea));
+      textarea.addEventListener('input', () => {
+        autoGrowTextarea(textarea);
+        updateStepStates();
+      });
 
       tr.querySelector('.use-time-btn').addEventListener('click', () => {
         tr.querySelector('.time-input').value = formatTime(getCurrentTime());
@@ -1006,6 +1227,7 @@
         tr.remove();
         repairSpeakerBorders();
         updatePauseDurations();
+        updateStepStates();
       });
 
       attachTimeListeners(tr);
@@ -1013,6 +1235,7 @@
       repairSpeakerBorders();
       updatePauseDurations();
       scrollTableToBottom();
+      updateStepStates();
       return tr;
     }
 
@@ -1040,6 +1263,7 @@
         tr.remove();
         repairSpeakerBorders();
         updatePauseDurations();
+        updateStepStates();
       });
 
       attachTimeListeners(tr);
@@ -1047,6 +1271,7 @@
       repairSpeakerBorders();
       updatePauseDurations();
       scrollTableToBottom();
+      updateStepStates();
       return tr;
     }
 
@@ -1099,7 +1324,7 @@
       };
     }
 
-    function buildMetadataText() {
+    function buildMetadataTextFull() {
       const meta = getMetadata();
       return [
         `Unterrichtsfach: ${meta.subject}`,
@@ -1109,6 +1334,16 @@
         `Länge des Ausschnitts: ${meta.length}`,
         `Quelle: ${meta.source}`,
         `Transkribiert von: ${meta.author}`,
+        `Sprecher: ${speakerPresets.join(', ')}`
+      ].join('\n') + '\n\n';
+    }
+
+    function buildMetadataTextForChatgpt() {
+      const meta = getMetadata();
+      return [
+        `Unterrichtsfach: ${meta.subject}`,
+        `Klasse: ${meta.className}`,
+        `Unterrichtsthema: ${meta.topic}`,
         `Sprecher: ${speakerPresets.join(', ')}`
       ].join('\n') + '\n\n';
     }
@@ -1160,17 +1395,8 @@
     }
 
     function buildDefaultAnalysisPrompt() {
-      const meta = getMetadata();
       return [
         'Bitte analysiere das folgende Transkript im Hinblick auf die Gesprächsführung.',
-        '',
-        'Kontext:',
-        `- Unterrichtsfach: ${meta.subject || 'nicht angegeben'}`,
-        `- Klasse: ${meta.className || 'nicht angegeben'}`,
-        `- Unterrichtsthema: ${meta.topic || 'nicht angegeben'}`,
-        `- Videoname: ${meta.title || 'nicht angegeben'}`,
-        `- Länge des Ausschnitts: ${meta.length || 'nicht angegeben'}`,
-        '',
         'Beziehe dich dabei insbesondere auf:',
         '- Struktur und Klarheit der Gesprächsführung',
         '- Angemessenheit von Fragen, Reaktionen und Gesprächsimpulsen',
@@ -1184,7 +1410,7 @@
     function buildClipboardTextWithPrompt(customPrompt) {
       const rows = getRowsData();
       const promptText = (customPrompt || '').trim();
-      return promptText + '\n\nTRANSKRIPT:\n\n' + buildMetadataText() + buildTranscriptTxt(rows);
+      return promptText + '\n\nTRANSKRIPT:\n\n' + buildMetadataTextForChatgpt() + buildTranscriptTxt(rows);
     }
 
     async function copyTextToClipboard(text) {
@@ -1224,8 +1450,10 @@
     }
 
     function exportTxt() {
-      const content = buildClipboardTextWithPrompt(buildDefaultAnalysisPrompt());
+      const rows = getRowsData();
+      const content = buildMetadataTextFull() + buildTranscriptTxt(rows);
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
+      updateStepStates();
     }
 
     function exportCsv() {
@@ -1250,6 +1478,7 @@
 
       const bom = '\uFEFF';
       downloadFile(bom + lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+      updateStepStates();
     }
 
     function getSkipAmount() {
@@ -1430,6 +1659,7 @@
       setSourceStatus('YouTube-Video geladen.');
       if (!metaSource.value.trim()) metaSource.value = url;
       startYoutubeTimePolling();
+      updateStepStates();
     }
 
     function startYoutubeTimePolling() {
@@ -1461,6 +1691,7 @@
 
         if (!metaTitle.value.trim()) metaTitle.value = file.name;
         if (!metaSource.value.trim()) metaSource.value = 'Lokale Videodatei';
+        updateStepStates();
         return;
       }
 
@@ -1520,6 +1751,12 @@
       setPlaybackRate(Number(speedSelectBottom.value));
     });
 
+    [
+      metaSubject, metaClass, metaTopic, metaTitle, metaLength, metaSource, metaAuthor
+    ].forEach(el => {
+      el.addEventListener('input', updateStepStates);
+    });
+
     addSpeakerBtn.addEventListener('click', addSpeaker);
     speakerInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
@@ -1544,6 +1781,7 @@
       } else {
         setSourceStatus('Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
+      updateStepStates();
     });
 
     analyzeChatgptBtn.addEventListener('click', () => {
@@ -1563,6 +1801,8 @@
         setSourceStatus('ChatGPT wurde geöffnet. Das Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
 
+      step4Done = true;
+      updateStepStates();
       closeAnalysisPopup();
     });
 
@@ -1572,12 +1812,16 @@
       setPlaybackRate(Number(speedSelect.value));
       if (!metaLength.value.trim() && isFinite(localVideo.duration)) {
         metaLength.value = formatTime(localVideo.duration);
+        updateStepStates();
       }
     });
 
     updateVideoVisibility();
     renderSpeakerTags();
     createStandardRow('', '', '');
+    updateStepStates();
+    observeSections();
+    setActiveStep('step1');
   </script>
 </body>
 </html>
