@@ -55,7 +55,6 @@
     }
 
     .rail-base,
-    .rail-done,
     .rail-active {
       position: absolute;
       left: 26px;
@@ -67,13 +66,6 @@
       top: 0;
       bottom: 0;
       background: #d7dfe8;
-    }
-
-    .rail-done {
-      top: 0;
-      height: 0;
-      background: #7cc49a;
-      transition: height 0.35s ease;
     }
 
     .rail-active {
@@ -97,11 +89,6 @@
       transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
     }
 
-    .rail-dot.is-done {
-      background: #7cc49a;
-      border-color: #7cc49a;
-    }
-
     .rail-dot.is-active {
       background: #2d6cdf;
       border-color: #2d6cdf;
@@ -122,7 +109,6 @@
       border-radius: 12px;
       padding: 16px;
       background: #fff;
-      transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
     }
 
     .section-heading {
@@ -582,7 +568,6 @@
       }
 
       .rail-base,
-      .rail-done,
       .rail-active {
         left: 18px;
       }
@@ -626,7 +611,6 @@
     <div class="layout">
       <aside class="progress-rail" id="progressRail" aria-label="Fortschritt">
         <div class="rail-base"></div>
-        <div class="rail-done" id="railDone"></div>
         <div class="rail-active" id="railActive"></div>
 
         <button class="rail-dot" id="railDot1" type="button" aria-label="Schritt 1"></button>
@@ -636,7 +620,7 @@
       </aside>
 
       <main class="main-content" id="mainContent">
-        <div class="section card step-card" id="step1">
+        <div class="section card" id="step1">
           <div class="section-heading">Schritt 1: Metadaten und Sprecher</div>
 
           <label>Metadaten</label>
@@ -681,7 +665,7 @@
           </div>
         </div>
 
-        <div class="section card step-card" id="step2">
+        <div class="section card" id="step2">
           <div class="section-heading">Schritt 2: Video importieren</div>
 
           <div class="source-grid">
@@ -787,7 +771,7 @@
           </div>
         </div>
 
-        <div class="section card step-card" id="step3">
+        <div class="section card" id="step3">
           <div class="section-heading">Schritt 3: Transkript anlegen</div>
 
           <div class="top-actions">
@@ -817,7 +801,7 @@
           </div>
         </div>
 
-        <div class="section card step-card" id="step4">
+        <div class="section card" id="step4">
           <div class="section-heading">Schritt 4: Mit ChatGPT analysieren</div>
 
           <div class="top-actions">
@@ -908,7 +892,6 @@
 
     const mainContent = document.getElementById('mainContent');
     const progressRail = document.getElementById('progressRail');
-    const railDone = document.getElementById('railDone');
     const railActive = document.getElementById('railActive');
 
     const step1 = document.getElementById('step1');
@@ -928,16 +911,7 @@
     let youtubeTimeInterval = null;
     let videoVisible = true;
 
-    let step3DoneFlag = false;
-    let step4DoneFlag = false;
     let activeStepId = 'step1';
-
-    let previousStepStates = {
-      1: false,
-      2: false,
-      3: false,
-      4: false
-    };
 
     const stepElements = {
       1: step1,
@@ -987,22 +961,6 @@
     }
 
     function updateRailLineVisuals() {
-      const stepStates = computeStepStates();
-
-      let lastDone = 0;
-      for (let i = 1; i <= 4; i++) {
-        if (stepStates[i]) lastDone = i;
-      }
-
-      if (lastDone > 0) {
-        const endY = getDotCenterY(lastDone);
-        railDone.style.top = '0px';
-        railDone.style.height = Math.max(0, endY) + 'px';
-      } else {
-        railDone.style.top = '0px';
-        railDone.style.height = '0px';
-      }
-
       if (activeStepId) {
         const activeNumber = Number(activeStepId.replace('step', ''));
         const activeEndY = getDotCenterY(activeNumber);
@@ -1014,11 +972,8 @@
       }
 
       for (let i = 1; i <= 4; i++) {
-        railDots[i].classList.remove('is-active', 'is-done');
-
-        if (stepStates[i]) {
-          railDots[i].classList.add('is-done');
-        } else if (activeStepId === 'step' + i) {
+        railDots[i].classList.remove('is-active');
+        if (activeStepId === 'step' + i) {
           railDots[i].classList.add('is-active');
         }
       }
@@ -1045,39 +1000,7 @@
       [step1, step2, step3, step4].forEach(section => observer.observe(section));
     }
 
-    function computeStepStates() {
-      const transcriptHasText = Array.from(tableBody.querySelectorAll('.utterance-input'))
-        .some(el => el.value.trim() !== '');
-
-      return {
-        1:
-          metaSubject.value.trim() !== '' &&
-          metaClass.value.trim() !== '' &&
-          metaTopic.value.trim() !== '' &&
-          speakerPresets.length > 0,
-        2: currentSource !== null,
-        3: transcriptHasText && step3DoneFlag,
-        4: step4DoneFlag
-      };
-    }
-
-    function maybeAutoAdvance(newStates) {
-      if (!previousStepStates[1] && newStates[1]) {
-        scrollToStep(2);
-        setTimeout(() => setActiveStep('step2'), 450);
-      } else if (!previousStepStates[2] && newStates[2]) {
-        scrollToStep(3);
-        setTimeout(() => setActiveStep('step3'), 450);
-      } else if (!previousStepStates[3] && newStates[3]) {
-        scrollToStep(4);
-        setTimeout(() => setActiveStep('step4'), 450);
-      }
-    }
-
     function updateStepStates() {
-      const states = computeStepStates();
-      maybeAutoAdvance(states);
-      previousStepStates = { ...states };
       requestAnimationFrame(syncRailPositions);
     }
 
@@ -1536,7 +1459,6 @@
       const rows = getRowsData();
       const content = buildMetadataTextFull() + buildTranscriptTxt(rows);
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
-      step3DoneFlag = true;
       updateStepStates();
     }
 
@@ -1562,12 +1484,7 @@
 
       const bom = '\uFEFF';
       downloadFile(bom + lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
-      step3DoneFlag = true;
       updateStepStates();
-    }
-
-    function getSkipAmount() {
-      return Number(skipSelect.value) || 1;
     }
 
     function getCurrentTime() {
@@ -1576,6 +1493,10 @@
         return youtubePlayer.getCurrentTime() || 0;
       }
       return 0;
+    }
+
+    function getSkipAmount() {
+      return Number(skipSelect.value) || 1;
     }
 
     function setCurrentTime(seconds) {
@@ -1864,7 +1785,6 @@
 
       if (ok) {
         setSourceStatus('Transkript wurde in die Zwischenablage kopiert.');
-        step3DoneFlag = true;
       } else {
         setSourceStatus('Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
@@ -1888,7 +1808,6 @@
         setSourceStatus('ChatGPT wurde geöffnet. Das Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
 
-      step4DoneFlag = true;
       updateStepStates();
       closeAnalysisPopup();
     });
