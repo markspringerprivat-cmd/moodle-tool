@@ -63,10 +63,7 @@
     }
 
     .rail-base {
-      top: 0;
-      bottom: 0;
-      background: #d7dfe8;
-      transition: top 0.45s ease;
+      display: none;
     }
 
     .rail-active {
@@ -959,7 +956,6 @@
     const mainContent = document.getElementById('mainContent');
     const progressRail = document.getElementById('progressRail');
     const railActive = document.getElementById('railActive');
-    const railBase = progressRail.querySelector('.rail-base');
 
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
@@ -1164,9 +1160,6 @@
 
       railActive.style.top = '0px';
       railActive.style.height = Math.max(0, activeCenterY) + 'px';
-
-      railBase.style.top = activeCenterY + 'px';
-      railBase.style.bottom = '0px';
 
       for (let i = 1; i <= 5; i++) {
         railDots[i].classList.remove('is-active');
