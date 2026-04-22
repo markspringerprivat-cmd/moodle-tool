@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Transkript-Feedback</title>
+  <title>Video zu Transkript</title>
   <style>
     html, body {
       margin: 0;
@@ -11,6 +11,7 @@
       width: 100%;
       background: #ffffff;
       font-family: Arial, sans-serif;
+      color: #111;
     }
 
     body {
@@ -20,10 +21,9 @@
       background: #ffffff;
     }
 
-    .custom-app {
-      width: min(980px, 100%);
-      padding: 36px 24px 48px;
-      margin: 0 auto;
+    .app {
+      width: min(1000px, 100%);
+      padding: 32px 24px 48px;
       box-sizing: border-box;
       background: #ffffff;
     }
@@ -37,14 +37,30 @@
     .intro {
       text-align: center;
       margin: 0 0 24px;
-      color: #333;
       line-height: 1.5;
+      color: #333;
     }
 
-    label {
+    .section {
+      margin-top: 24px;
+    }
+
+    .label {
       display: block;
       margin-bottom: 8px;
       font-weight: bold;
+    }
+
+    input[type="file"] {
+      display: block;
+      margin-bottom: 14px;
+    }
+
+    video {
+      width: 100%;
+      max-height: 420px;
+      background: #000;
+      border-radius: 8px;
     }
 
     textarea {
@@ -57,13 +73,13 @@
       resize: vertical;
       font-size: 16px;
       font-family: Arial, sans-serif;
-      background: #ffffff;
       line-height: 1.5;
+      background: #fff;
     }
 
     .button-row {
-      text-align: center;
       margin-top: 18px;
+      text-align: center;
     }
 
     button {
@@ -74,6 +90,7 @@
       font-size: 16px;
       background: #2d6cdf;
       color: white;
+      margin: 0 6px;
     }
 
     button:disabled {
@@ -81,197 +98,254 @@
       cursor: not-allowed;
     }
 
-    .status-box {
-      margin-top: 16px;
+    .secondary {
+      background: #666;
+    }
+
+    .status {
+      margin-top: 18px;
       text-align: center;
-      color: #444;
-      min-height: 24px;
-      line-height: 1.4;
-    }
-
-    .response-box {
-      margin-top: 26px;
-      padding: 18px;
-      border: 1px solid #dddddd;
-      border-radius: 8px;
-      background: #fafafa;
-      display: none;
-    }
-
-    .response-title {
-      font-weight: bold;
-      margin-bottom: 10px;
-      font-size: 1.05rem;
-    }
-
-    .response-text {
-      white-space: pre-wrap;
-      line-height: 1.6;
+      min-height: 26px;
+      line-height: 1.5;
+      color: #333;
     }
 
     .note {
       margin-top: 16px;
       font-size: 13px;
+      line-height: 1.4;
       color: #666;
       text-align: center;
-      line-height: 1.4;
+    }
+
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <div class="custom-app">
-    <h1>Transkript-Feedback</h1>
+  <div class="app">
+    <h1>Video zu Transkript</h1>
     <p class="intro">
-      Füge hier ein Gesprächstranskript ein. Das Modell reagiert in der Rolle
-      eines Fachleiters und gibt kurzes, strukturiertes Feedback.
+      Lade ein Video hoch. Die Seite extrahiert lokal die Audiospur und erstellt daraus ein Transkript.
     </p>
 
-    <label for="meinText">Transkript eingeben:</label>
-    <textarea
-      id="meinText"
-      placeholder="Hier das Transkript einfügen ..."
-    ></textarea>
-
-    <div class="button-row">
-      <button id="sendBtn" type="button">Analysieren</button>
+    <div class="section">
+      <label class="label" for="videoInput">Video auswählen:</label>
+      <input id="videoInput" type="file" accept="video/*" />
+      <video id="videoPreview" controls class="hidden"></video>
     </div>
 
-    <div id="status" class="status-box"></div>
-
-    <div id="responseBox" class="response-box">
-      <div class="response-title">Feedback</div>
-      <div id="responseText" class="response-text"></div>
+    <div class="section">
+      <div class="button-row">
+        <button id="startBtn" type="button" disabled>Transkript erstellen</button>
+        <button id="copyBtn" type="button" class="secondary" disabled>Transkript kopieren</button>
+      </div>
+      <div id="status" class="status">Noch kein Video ausgewählt.</div>
+      <div class="note">
+        Der erste Start kann mehrere Minuten dauern, weil Browser-Komponenten und Sprachmodell geladen werden.
+      </div>
     </div>
 
-    <div class="note">
-      Hinweis: Das Modell läuft lokal im Browser. Der erste Start kann etwas dauern.
+    <div class="section">
+      <label class="label" for="transcriptBox">Transkript:</label>
+      <textarea id="transcriptBox" placeholder="Hier erscheint das Transkript ..." spellcheck="false"></textarea>
     </div>
   </div>
 
   <script type="module">
-    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.1.0';
+    import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js';
+    import { fetchFile, toBlobURL } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js';
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
 
     env.allowLocalModels = false;
 
-    const textInput = document.getElementById('meinText');
-    const sendBtn = document.getElementById('sendBtn');
+    const videoInput = document.getElementById('videoInput');
+    const videoPreview = document.getElementById('videoPreview');
+    const startBtn = document.getElementById('startBtn');
+    const copyBtn = document.getElementById('copyBtn');
     const statusBox = document.getElementById('status');
-    const responseBox = document.getElementById('responseBox');
-    const responseText = document.getElementById('responseText');
+    const transcriptBox = document.getElementById('transcriptBox');
 
-    let generator = null;
-    let isRunning = false;
+    let selectedFile = null;
+    let ffmpeg = null;
+    let ffmpegReady = false;
+    let transcriber = null;
+    let transcriberReady = false;
+    let busy = false;
 
-    async function ladeModell() {
-      if (generator) return generator;
+    function setStatus(text) {
+      statusBox.textContent = text;
+    }
 
-      statusBox.textContent = 'Modell wird geladen ... Das kann beim ersten Start 1–3 Minuten dauern.';
+    function setBusy(state) {
+      busy = state;
+      startBtn.disabled = state || !selectedFile || !ffmpegReady || !transcriberReady;
+      copyBtn.disabled = state || !transcriptBox.value.trim();
+      videoInput.disabled = state;
+    }
 
+    async function ladeFFmpeg() {
+      if (ffmpegReady) return ffmpeg;
+
+      setStatus('Videokomponente wird geladen ...');
+      ffmpeg = new FFmpeg();
+
+      const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
+      const coreURL = await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript');
+      const wasmURL = await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm');
+
+      await ffmpeg.load({
+        coreURL,
+        wasmURL
+      });
+
+      ffmpegReady = true;
+      return ffmpeg;
+    }
+
+    async function ladeASR() {
+      if (transcriberReady) return transcriber;
+
+      setStatus('Sprachmodell wird geladen ...');
       try {
-        generator = await pipeline(
-          'text-generation',
-          'onnx-community/Llama-3.2-1B-Instruct-q4f16',
+        transcriber = await pipeline(
+          'automatic-speech-recognition',
+          'Xenova/whisper-tiny',
           { device: 'webgpu' }
         );
-        statusBox.textContent = 'Modell ist bereit.';
-        return generator;
-      } catch (webgpuError) {
-        console.warn('WebGPU fehlgeschlagen, wechsle zu Standard-Fallback.', webgpuError);
-
-        statusBox.textContent = 'WebGPU nicht verfügbar. Es wird der langsamere Browser-Fallback geladen ...';
-
-        generator = await pipeline(
-          'text-generation',
-          'onnx-community/Llama-3.2-1B-Instruct-q4f16'
+      } catch (err) {
+        console.warn('WebGPU nicht verfügbar, nutze Fallback.', err);
+        setStatus('Sprachmodell wird ohne WebGPU geladen ...');
+        transcriber = await pipeline(
+          'automatic-speech-recognition',
+          'Xenova/whisper-tiny'
         );
+      }
 
-        statusBox.textContent = 'Modell ist bereit.';
-        return generator;
+      transcriberReady = true;
+      return transcriber;
+    }
+
+    async function ensureEverythingLoaded() {
+      await ladeFFmpeg();
+      await ladeASR();
+      setStatus('Bereit. Du kannst jetzt ein Video transkribieren.');
+      setBusy(false);
+    }
+
+    async function extrahiereAudioAlsWav(file) {
+      const inputName = 'input_video';
+      const outputName = 'audio.wav';
+
+      await ffmpeg.writeFile(inputName, await fetchFile(file));
+
+      // Mono WAV, 16 kHz – passend für ASR-Workflows
+      await ffmpeg.exec([
+        '-i', inputName,
+        '-vn',
+        '-ac', '1',
+        '-ar', '16000',
+        '-f', 'wav',
+        outputName
+      ]);
+
+      const data = await ffmpeg.readFile(outputName);
+
+      try { await ffmpeg.deleteFile(inputName); } catch {}
+      try { await ffmpeg.deleteFile(outputName); } catch {}
+
+      return new Blob([data.buffer], { type: 'audio/wav' });
+    }
+
+    async function transkribiereAudio(audioBlob) {
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      try {
+        const result = await transcriber(audioUrl, {
+          chunk_length_s: 30,
+          stride_length_s: 5,
+          language: 'german',
+          task: 'transcribe',
+          return_timestamps: false
+        });
+
+        if (typeof result === 'string') return result;
+        if (result?.text) return result.text;
+        return 'Kein Transkript erzeugt.';
+      } finally {
+        URL.revokeObjectURL(audioUrl);
       }
     }
 
-    function bauePrompt(transkript) {
-      return `Du bist ein Fachleiter in der Lehrerbildung.
+    videoInput.addEventListener('change', (event) => {
+      const file = event.target.files?.[0] || null;
+      selectedFile = file;
 
-Bewerte das folgende Gesprächstranskript einer Lehrkraft sachlich, konstruktiv und knapp auf Deutsch.
+      transcriptBox.value = '';
+      copyBtn.disabled = true;
 
-Gib deine Antwort in genau dieser Struktur aus:
-
-1. Gesamteindruck
-2. Stärken
-3. Schwächen
-4. Verbesserungsvorschläge
-
-Schreibe klar, konkret und ohne Einleitungssatz. Beziehe dich nur auf das Transkript.
-
-Transkript:
-${transkript}
-
-Feedback:`;
-    }
-
-    function bereinigeAntwort(fullText, prompt) {
-      if (!fullText) return 'Keine Antwort erzeugt.';
-      let text = fullText;
-
-      if (text.startsWith(prompt)) {
-        text = text.slice(prompt.length).trim();
-      }
-
-      return text.trim() || 'Keine Antwort erzeugt.';
-    }
-
-    sendBtn.addEventListener('click', async () => {
-      const input = textInput.value.trim();
-
-      if (!input) {
-        statusBox.textContent = 'Bitte zuerst ein Transkript einfügen.';
-        responseBox.style.display = 'none';
+      if (!file) {
+        videoPreview.classList.add('hidden');
+        videoPreview.removeAttribute('src');
+        setStatus('Noch kein Video ausgewählt.');
+        startBtn.disabled = true;
         return;
       }
 
-      if (isRunning) return;
+      const url = URL.createObjectURL(file);
+      videoPreview.src = url;
+      videoPreview.classList.remove('hidden');
 
-      try {
-        isRunning = true;
-        sendBtn.disabled = true;
-        responseBox.style.display = 'none';
-        statusBox.textContent = 'Analyse läuft ...';
-
-        const pipe = await ladeModell();
-        const prompt = bauePrompt(input);
-
-        const result = await pipe(prompt, {
-          max_new_tokens: 260,
-          temperature: 0.2,
-          do_sample: false,
-          repetition_penalty: 1.1
-        });
-
-        const generated = Array.isArray(result)
-          ? result[0]?.generated_text
-          : result?.generated_text;
-
-        const antwort = bereinigeAntwort(generated, prompt);
-
-        responseText.textContent = antwort;
-        responseBox.style.display = 'block';
-        statusBox.textContent = 'Fertig.';
-      } catch (error) {
-        console.error(error);
-        statusBox.textContent = 'Fehler beim Laden oder Ausführen des Modells.';
-        responseText.textContent =
-          'Das lokale Modell konnte auf diesem Gerät oder in diesem Browser nicht sauber ausgeführt werden.';
-        responseBox.style.display = 'block';
-      } finally {
-        isRunning = false;
-        sendBtn.disabled = false;
+      if (ffmpegReady && transcriberReady && !busy) {
+        startBtn.disabled = false;
+        setStatus('Video ausgewählt. Du kannst jetzt das Transkript erstellen.');
+      } else {
+        setStatus('Video ausgewählt. Komponenten werden vorbereitet ...');
       }
     });
 
-    ladeModell().catch((err) => {
-      console.error(err);
-      statusBox.textContent = 'Das Modell konnte nicht vorgeladen werden. Du kannst es später erneut versuchen.';
+    startBtn.addEventListener('click', async () => {
+      if (!selectedFile || busy) return;
+
+      try {
+        setBusy(true);
+        transcriptBox.value = '';
+        setStatus('Audio wird aus dem Video extrahiert ...');
+
+        const audioBlob = await extrahiereAudioAlsWav(selectedFile);
+
+        setStatus('Audio wurde extrahiert. Transkription läuft ...');
+        const text = await transkribiereAudio(audioBlob);
+
+        transcriptBox.value = text?.trim() || 'Kein Transkript erzeugt.';
+        setStatus('Fertig.');
+        copyBtn.disabled = !transcriptBox.value.trim();
+      } catch (error) {
+        console.error(error);
+        transcriptBox.value = '';
+        setStatus('Fehler bei Audio-Extraktion oder Transkription.');
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(transcriptBox.value);
+        setStatus('Transkript wurde in die Zwischenablage kopiert.');
+      } catch (error) {
+        console.error(error);
+        setStatus('Kopieren war nicht möglich.');
+      }
+    });
+
+    // Vorladen
+    setBusy(true);
+    ensureEverythingLoaded().catch((error) => {
+      console.error(error);
+      setStatus('Die benötigten Browser-Komponenten konnten nicht vollständig geladen werden.');
+      setBusy(false);
     });
   </script>
 </body>
