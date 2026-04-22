@@ -50,6 +50,7 @@
     .progress-rail {
       position: relative;
       width: 56px;
+      align-self: stretch;
       min-height: 100%;
     }
 
@@ -79,7 +80,7 @@
       top: 0;
       height: 0;
       background: #2d6cdf;
-      transition: top 0.35s ease, height 0.35s ease;
+      transition: height 0.35s ease;
     }
 
     .rail-dot {
@@ -104,7 +105,7 @@
     .rail-dot.is-active {
       background: #2d6cdf;
       border-color: #2d6cdf;
-      box-shadow: 0 0 0 6px rgba(45,108,223,0.12);
+      box-shadow: 0 0 0 6px rgba(45, 108, 223, 0.12);
     }
 
     .main-content {
@@ -122,17 +123,6 @@
       padding: 16px;
       background: #fff;
       transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
-    }
-
-    .step-card.is-active {
-      border-color: #2d6cdf;
-      box-shadow: 0 0 0 3px rgba(45,108,223,0.10);
-      background: #f8fbff;
-    }
-
-    .step-card.is-done {
-      border-color: #bfe3cb;
-      background: #f5fcf7;
     }
 
     .section-heading {
@@ -975,31 +965,29 @@
     railDot3.addEventListener('click', () => scrollToStep(3));
     railDot4.addEventListener('click', () => scrollToStep(4));
 
-    function syncRailPositions() {
-      const sections = [step1, step2, step3, step4];
-      const railRect = progressRail.getBoundingClientRect();
-      const mainRect = mainContent.getBoundingClientRect();
-
-      sections.forEach((section, index) => {
-        const dot = railDots[index + 1];
-        const sectionTop = section.offsetTop;
-        const sectionMiddle = sectionTop + (section.offsetHeight / 2);
-        dot.style.top = sectionMiddle + 'px';
-      });
-
-      updateRailLineVisuals();
-    }
-
     function getDotCenterY(stepNumber) {
       const dot = railDots[stepNumber];
       return dot.offsetTop + (dot.offsetHeight / 2);
     }
 
+    function syncRailPositions() {
+      const sections = [step1, step2, step3, step4];
+      progressRail.style.height = mainContent.offsetHeight + 'px';
+
+      const railRect = progressRail.getBoundingClientRect();
+
+      sections.forEach((section, index) => {
+        const dot = railDots[index + 1];
+        const sectionRect = section.getBoundingClientRect();
+        const centerY = (sectionRect.top - railRect.top) + (sectionRect.height / 2);
+        dot.style.top = centerY + 'px';
+      });
+
+      updateRailLineVisuals();
+    }
+
     function updateRailLineVisuals() {
       const stepStates = computeStepStates();
-      const completedSteps = Object.keys(stepStates)
-        .map(Number)
-        .filter(n => stepStates[n]);
 
       let lastDone = 0;
       for (let i = 1; i <= 4; i++) {
@@ -1007,24 +995,27 @@
       }
 
       if (lastDone > 0) {
-        railDone.style.top = getDotCenterY(1) + 'px';
-        railDone.style.height = Math.max(0, getDotCenterY(lastDone) - getDotCenterY(1)) + 'px';
+        const endY = getDotCenterY(lastDone);
+        railDone.style.top = '0px';
+        railDone.style.height = Math.max(0, endY) + 'px';
       } else {
+        railDone.style.top = '0px';
         railDone.style.height = '0px';
       }
 
       if (activeStepId) {
         const activeNumber = Number(activeStepId.replace('step', ''));
-        const activeTopBase = lastDone >= 1 ? getDotCenterY(Math.min(lastDone + 1, activeNumber, 4)) : getDotCenterY(1);
-        const activeTop = Math.min(activeTopBase, getDotCenterY(activeNumber));
-        const activeHeight = Math.max(0, getDotCenterY(activeNumber) - activeTop);
-
-        railActive.style.top = activeTop + 'px';
-        railActive.style.height = activeHeight + 'px';
+        const activeEndY = getDotCenterY(activeNumber);
+        railActive.style.top = '0px';
+        railActive.style.height = Math.max(0, activeEndY) + 'px';
+      } else {
+        railActive.style.top = '0px';
+        railActive.style.height = '0px';
       }
 
       for (let i = 1; i <= 4; i++) {
         railDots[i].classList.remove('is-active', 'is-done');
+
         if (stepStates[i]) {
           railDots[i].classList.add('is-done');
         } else if (activeStepId === 'step' + i) {
@@ -1035,25 +1026,7 @@
 
     function setActiveStep(stepId) {
       activeStepId = stepId;
-
-      [step1, step2, step3, step4].forEach(el => el.classList.remove('is-active'));
-      const activeEl = document.getElementById(stepId);
-      if (activeEl) activeEl.classList.add('is-active');
-
-      updateSectionDoneStates();
       updateRailLineVisuals();
-    }
-
-    function updateSectionDoneStates() {
-      const states = computeStepStates();
-
-      [step1, step2, step3, step4].forEach((el, index) => {
-        const stepNo = index + 1;
-        el.classList.remove('is-done');
-        if (states[stepNo] && activeStepId !== 'step' + stepNo) {
-          el.classList.add('is-done');
-        }
-      });
     }
 
     function observeSections() {
@@ -1105,8 +1078,6 @@
       const states = computeStepStates();
       maybeAutoAdvance(states);
       previousStepStates = { ...states };
-      updateSectionDoneStates();
-      updateRailLineVisuals();
       requestAnimationFrame(syncRailPositions);
     }
 
@@ -1930,6 +1901,10 @@
         metaLength.value = formatTime(localVideo.duration);
       }
       updateStepStates();
+    });
+
+    window.addEventListener('load', () => {
+      syncRailPositions();
     });
 
     window.addEventListener('resize', () => {
