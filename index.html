@@ -19,7 +19,7 @@
     }
 
     .app {
-      width: min(1100px, 100%);
+      width: min(1150px, 100%);
       padding: 24px;
       box-sizing: border-box;
     }
@@ -38,7 +38,14 @@
     }
 
     .section {
-      margin-top: 24px;
+      margin-top: 28px;
+    }
+
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 16px;
+      background: #fff;
     }
 
     label {
@@ -47,27 +54,47 @@
       margin-bottom: 8px;
     }
 
-    input[type="file"], select {
+    input[type="file"],
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
       padding: 10px;
       border: 1px solid #bbb;
       border-radius: 8px;
       font-size: 15px;
       background: #fff;
+      font-family: Arial, sans-serif;
     }
 
-    video {
-      width: 100%;
-      max-height: 500px;
-      background: #000;
-      border-radius: 10px;
+    textarea {
+      min-height: 70px;
+      resize: vertical;
     }
 
-    .controls {
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+
+    .row {
+      margin-top: 12px;
+    }
+
+    .inline-controls {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 14px;
       align-items: center;
+      margin-top: 14px;
     }
 
     button {
@@ -84,6 +111,11 @@
       background: #666;
     }
 
+    button.small-btn {
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
     button:disabled {
       opacity: 0.6;
       cursor: not-allowed;
@@ -95,10 +127,40 @@
       min-width: 120px;
     }
 
-    .speed-box {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .hint {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.45;
+    }
+
+    .status {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #444;
+    }
+
+    video,
+    #youtubeContainer {
+      width: 100%;
+      max-height: 520px;
+      background: #000;
+      border-radius: 10px;
+    }
+
+    #youtubeContainer {
+      aspect-ratio: 16 / 9;
+      display: none;
+      overflow: hidden;
+    }
+
+    #youtubePlayer {
+      width: 100%;
+      height: 100%;
+    }
+
+    #localVideo {
+      display: none;
     }
 
     table {
@@ -118,31 +180,10 @@
       text-align: left;
     }
 
-    input[type="text"], textarea {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 8px;
-      border: 1px solid #bbb;
-      border-radius: 6px;
-      font-size: 14px;
-      font-family: Arial, sans-serif;
-      background: #fff;
-    }
-
-    textarea {
-      min-height: 70px;
-      resize: vertical;
-    }
-
     .row-actions {
       display: flex;
       gap: 6px;
       flex-wrap: wrap;
-    }
-
-    .small-btn {
-      padding: 6px 10px;
-      font-size: 13px;
     }
 
     .top-actions {
@@ -152,11 +193,15 @@
       margin-top: 14px;
     }
 
-    .hint {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #666;
-      line-height: 1.4;
+    .mono {
+      font-family: Consolas, monospace;
+    }
+
+    @media (max-width: 850px) {
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -164,39 +209,82 @@
   <div class="app">
     <h1>Transkript-Editor</h1>
     <p class="intro">
-      Video hochladen, anhalten, in kleinen Schritten vor- und zurückgehen und das Transkript direkt Zeile für Zeile erfassen.
+      Video laden oder YouTube-Link einfügen, fein navigieren und das Transkript Zeile für Zeile erfassen.
     </p>
 
-    <div class="section">
-      <label for="videoInput">Video auswählen</label>
-      <input id="videoInput" type="file" accept="video/*" />
+    <div class="section card">
+      <div class="grid-2">
+        <div>
+          <label for="videoInput">Lokale Videodatei</label>
+          <input id="videoInput" type="file" accept="video/*" />
+        </div>
+        <div>
+          <label for="youtubeUrl">YouTube-Link</label>
+          <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
+          <div class="row">
+            <button id="loadYoutubeBtn" type="button">YouTube laden</button>
+          </div>
+        </div>
+      </div>
+      <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
     </div>
 
     <div class="section">
-      <video id="videoPlayer" controls></video>
+      <video id="localVideo" controls></video>
+      <div id="youtubeContainer">
+        <div id="youtubePlayer"></div>
+      </div>
 
-      <div class="controls">
+      <div class="inline-controls">
         <button id="playPauseBtn" type="button">Play / Pause</button>
-        <button id="back1Btn" type="button" class="secondary">-1 Sek</button>
-        <button id="forward1Btn" type="button" class="secondary">+1 Sek</button>
+        <button id="backBtn" type="button" class="secondary">Zurück</button>
+        <button id="forwardBtn" type="button" class="secondary">Vor</button>
         <button id="insertTimeBtn" type="button">Zeit in neue Zeile übernehmen</button>
 
         <div class="time-display" id="timeDisplay">00:00.0</div>
 
-        <div class="speed-box">
-          <label for="speedSelect" style="margin:0; font-weight:normal;">Tempo</label>
+        <div>
+          <label for="skipSelect" style="margin:0 0 4px 0; font-weight:normal;">Sprungweite</label>
+          <select id="skipSelect">
+            <option value="0.5">0,5 Sek</option>
+            <option value="1" selected>1 Sek</option>
+            <option value="2">2 Sek</option>
+            <option value="5">5 Sek</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="speedSelect" style="margin:0 0 4px 0; font-weight:normal;">Tempo</label>
           <select id="speedSelect">
             <option value="0.5">0.5x</option>
             <option value="0.75">0.75x</option>
             <option value="1" selected>1.0x</option>
             <option value="1.25">1.25x</option>
             <option value="1.5">1.5x</option>
+            <option value="2">2.0x</option>
           </select>
         </div>
       </div>
 
       <div class="hint">
-        Empfehlung: Mit „-1 Sek“ und „+1 Sek“ fein navigieren, dann für jede Äußerung eine neue Zeile anlegen.
+        Tastatur: <span class="mono">Leertaste</span> = Play/Pause, <span class="mono">←</span> = zurück, <span class="mono">→</span> = vor.
+        Die Shortcuts greifen nicht, wenn du gerade in ein Textfeld schreibst.
+      </div>
+    </div>
+
+    <div class="section card">
+      <label for="speakerPresets">Sprecherliste</label>
+      <input
+        id="speakerPresets"
+        type="text"
+        value="Lehrkraft, Schüler 1, Schüler 2, Schüler 3, Schüler 4"
+        placeholder="Sprecher durch Komma trennen"
+      />
+      <div class="row">
+        <button id="applySpeakersBtn" type="button">Sprecher übernehmen</button>
+      </div>
+      <div class="hint">
+        Beispiel: Lehrkraft, Schüler 1, Schüler 2, Beobachter
       </div>
     </div>
 
@@ -207,11 +295,11 @@
         <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
       </div>
 
-      <table id="transcriptTable">
+      <table>
         <thead>
           <tr>
             <th style="width: 140px;">Zeit</th>
-            <th style="width: 160px;">Sprecher</th>
+            <th style="width: 220px;">Sprecher</th>
             <th>Äußerung</th>
             <th style="width: 150px;">Aktionen</th>
           </tr>
@@ -223,20 +311,37 @@
 
   <script>
     const videoInput = document.getElementById('videoInput');
-    const videoPlayer = document.getElementById('videoPlayer');
+    const youtubeUrl = document.getElementById('youtubeUrl');
+    const loadYoutubeBtn = document.getElementById('loadYoutubeBtn');
+    const sourceStatus = document.getElementById('sourceStatus');
+
+    const localVideo = document.getElementById('localVideo');
+    const youtubeContainer = document.getElementById('youtubeContainer');
+
     const playPauseBtn = document.getElementById('playPauseBtn');
-    const back1Btn = document.getElementById('back1Btn');
-    const forward1Btn = document.getElementById('forward1Btn');
+    const backBtn = document.getElementById('backBtn');
+    const forwardBtn = document.getElementById('forwardBtn');
     const insertTimeBtn = document.getElementById('insertTimeBtn');
+    const skipSelect = document.getElementById('skipSelect');
     const speedSelect = document.getElementById('speedSelect');
     const timeDisplay = document.getElementById('timeDisplay');
+
+    const speakerPresetsInput = document.getElementById('speakerPresets');
+    const applySpeakersBtn = document.getElementById('applySpeakersBtn');
+
     const addRowBtn = document.getElementById('addRowBtn');
     const exportTxtBtn = document.getElementById('exportTxtBtn');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
     const tableBody = document.getElementById('tableBody');
 
+    let speakerPresets = [];
+    let currentSource = null; // "local" | "youtube" | null
+    let youtubePlayer = null;
+    let youtubeApiReady = false;
+    let youtubeTimeInterval = null;
+
     function formatTime(seconds) {
-      const s = Math.max(0, seconds || 0);
+      const s = Math.max(0, Number(seconds) || 0);
       const mins = Math.floor(s / 60);
       const secs = Math.floor(s % 60);
       const tenths = Math.floor((s - Math.floor(s)) * 10);
@@ -249,13 +354,57 @@
       return '"' + text.replace(/"/g, '""') + '"';
     }
 
+    function parseSpeakerPresets() {
+      speakerPresets = speakerPresetsInput.value
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+
+    function buildSpeakerOptions(selected = '') {
+      parseSpeakerPresets();
+      const options = ['<option value="">Bitte wählen</option>']
+        .concat(
+          speakerPresets.map(name => {
+            const isSelected = name === selected ? 'selected' : '';
+            return `<option value="${escapeHtml(name)}" ${isSelected}>${escapeHtml(name)}</option>`;
+          })
+        );
+      return options.join('');
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+
+    function refreshAllSpeakerDropdowns() {
+      const selects = tableBody.querySelectorAll('.speaker-select');
+      selects.forEach(select => {
+        const currentValue = select.value;
+        select.innerHTML = buildSpeakerOptions(currentValue);
+        if (speakerPresets.includes(currentValue)) {
+          select.value = currentValue;
+        } else if (currentValue) {
+          const opt = document.createElement('option');
+          opt.value = currentValue;
+          opt.textContent = currentValue;
+          opt.selected = true;
+          select.appendChild(opt);
+        }
+      });
+    }
+
     function createRow(time = '', speaker = '', utterance = '') {
       const tr = document.createElement('tr');
 
       tr.innerHTML = `
-        <td><input type="text" class="time-input" value="${time}"></td>
-        <td><input type="text" class="speaker-input" value="${speaker}" placeholder="z. B. Lehrkraft, S1"></td>
-        <td><textarea class="utterance-input" placeholder="Äußerung eingeben ...">${utterance}</textarea></td>
+        <td><input type="text" class="time-input" value="${escapeHtml(time)}"></td>
+        <td><select class="speaker-select">${buildSpeakerOptions(speaker)}</select></td>
+        <td><textarea class="utterance-input" placeholder="Äußerung eingeben ...">${escapeHtml(utterance)}</textarea></td>
         <td>
           <div class="row-actions">
             <button type="button" class="small-btn use-time-btn">Aktuelle Zeit</button>
@@ -264,8 +413,19 @@
         </td>
       `;
 
+      const select = tr.querySelector('.speaker-select');
+      if (speaker && !speakerPresets.includes(speaker)) {
+        const opt = document.createElement('option');
+        opt.value = speaker;
+        opt.textContent = speaker;
+        opt.selected = true;
+        select.appendChild(opt);
+      } else {
+        select.value = speaker;
+      }
+
       tr.querySelector('.use-time-btn').addEventListener('click', () => {
-        tr.querySelector('.time-input').value = formatTime(videoPlayer.currentTime);
+        tr.querySelector('.time-input').value = formatTime(getCurrentTime());
       });
 
       tr.querySelector('.delete-row-btn').addEventListener('click', () => {
@@ -279,7 +439,7 @@
     function getRowsData() {
       return Array.from(tableBody.querySelectorAll('tr')).map(row => ({
         time: row.querySelector('.time-input').value.trim(),
-        speaker: row.querySelector('.speaker-input').value.trim(),
+        speaker: row.querySelector('.speaker-select').value.trim(),
         utterance: row.querySelector('.utterance-input').value.trim()
       }));
     }
@@ -299,7 +459,7 @@
     function exportTxt() {
       const rows = getRowsData();
       const lines = rows.map(r => `[${r.time}] ${r.speaker}: ${r.utterance}`);
-      downloadFile(lines.join('\\n'), 'transkript.txt', 'text/plain;charset=utf-8');
+      downloadFile(lines.join('\n'), 'transkript.txt', 'text/plain;charset=utf-8');
     }
 
     function exportCsv() {
@@ -308,7 +468,160 @@
         ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(','),
         ...rows.map(r => [r.time, r.speaker, r.utterance].map(escapeCsv).join(','))
       ];
-      downloadFile(lines.join('\\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+      downloadFile(lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+    }
+
+    function getSkipAmount() {
+      return Number(skipSelect.value) || 1;
+    }
+
+    function setSourceStatus(text) {
+      sourceStatus.textContent = text;
+    }
+
+    function showLocalVideo() {
+      currentSource = 'local';
+      localVideo.style.display = 'block';
+      youtubeContainer.style.display = 'none';
+      stopYoutubeTimePolling();
+    }
+
+    function showYoutubeVideo() {
+      currentSource = 'youtube';
+      localVideo.pause();
+      localVideo.style.display = 'none';
+      youtubeContainer.style.display = 'block';
+      startYoutubeTimePolling();
+    }
+
+    function getCurrentTime() {
+      if (currentSource === 'local') {
+        return localVideo.currentTime || 0;
+      }
+      if (currentSource === 'youtube' && youtubePlayer && youtubePlayer.getCurrentTime) {
+        return youtubePlayer.getCurrentTime() || 0;
+      }
+      return 0;
+    }
+
+    function setCurrentTime(seconds) {
+      const value = Math.max(0, seconds || 0);
+      if (currentSource === 'local') {
+        localVideo.currentTime = value;
+      } else if (currentSource === 'youtube' && youtubePlayer && youtubePlayer.seekTo) {
+        youtubePlayer.seekTo(value, true);
+      }
+      updateTimeDisplay();
+    }
+
+    function togglePlayPause() {
+      if (currentSource === 'local') {
+        if (localVideo.paused) localVideo.play();
+        else localVideo.pause();
+      } else if (currentSource === 'youtube' && youtubePlayer) {
+        const state = youtubePlayer.getPlayerState();
+        if (state === 1) youtubePlayer.pauseVideo();
+        else youtubePlayer.playVideo();
+      }
+    }
+
+    function stepBy(delta) {
+      setCurrentTime(getCurrentTime() + delta);
+    }
+
+    function setPlaybackRate(rate) {
+      if (currentSource === 'local') {
+        localVideo.playbackRate = rate;
+      } else if (currentSource === 'youtube' && youtubePlayer && youtubePlayer.setPlaybackRate) {
+        youtubePlayer.setPlaybackRate(rate);
+      }
+    }
+
+    function updateTimeDisplay() {
+      timeDisplay.textContent = formatTime(getCurrentTime());
+    }
+
+    function isTypingTarget(el) {
+      if (!el) return false;
+      const tag = el.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+    }
+
+    function extractYoutubeId(url) {
+      try {
+        const parsed = new URL(url);
+        if (parsed.hostname.includes('youtu.be')) {
+          return parsed.pathname.slice(1);
+        }
+        if (parsed.hostname.includes('youtube.com')) {
+          return parsed.searchParams.get('v');
+        }
+      } catch {}
+      return null;
+    }
+
+    function loadYoutubeApi() {
+      return new Promise((resolve) => {
+        if (youtubeApiReady && window.YT && window.YT.Player) {
+          resolve();
+          return;
+        }
+
+        window.onYouTubeIframeAPIReady = () => {
+          youtubeApiReady = true;
+          resolve();
+        };
+
+        if (!document.querySelector('script[data-youtube-api="1"]')) {
+          const script = document.createElement('script');
+          script.src = 'https://www.youtube.com/iframe_api';
+          script.dataset.youtubeApi = '1';
+          document.head.appendChild(script);
+        }
+      });
+    }
+
+    async function loadYoutubeVideo(url) {
+      const id = extractYoutubeId(url);
+      if (!id) {
+        setSourceStatus('Ungültiger YouTube-Link.');
+        return;
+      }
+
+      await loadYoutubeApi();
+
+      if (youtubePlayer && youtubePlayer.loadVideoById) {
+        youtubePlayer.loadVideoById(id);
+      } else {
+        youtubePlayer = new YT.Player('youtubePlayer', {
+          videoId: id,
+          playerVars: {
+            rel: 0,
+            modestbranding: 1
+          },
+          events: {
+            onReady: () => {
+              setPlaybackRate(Number(speedSelect.value));
+              updateTimeDisplay();
+            }
+          }
+        });
+      }
+
+      showYoutubeVideo();
+      setSourceStatus('YouTube-Video geladen.');
+    }
+
+    function startYoutubeTimePolling() {
+      stopYoutubeTimePolling();
+      youtubeTimeInterval = setInterval(updateTimeDisplay, 200);
+    }
+
+    function stopYoutubeTimePolling() {
+      if (youtubeTimeInterval) {
+        clearInterval(youtubeTimeInterval);
+        youtubeTimeInterval = null;
+      }
     }
 
     videoInput.addEventListener('change', () => {
@@ -316,34 +629,33 @@
       if (!file) return;
 
       const url = URL.createObjectURL(file);
-      videoPlayer.src = url;
-      videoPlayer.load();
+      localVideo.src = url;
+      localVideo.load();
+      showLocalVideo();
+      setPlaybackRate(Number(speedSelect.value));
+      setSourceStatus(`Lokales Video geladen: ${file.name}`);
     });
 
-    playPauseBtn.addEventListener('click', () => {
-      if (videoPlayer.paused) {
-        videoPlayer.play();
-      } else {
-        videoPlayer.pause();
+    loadYoutubeBtn.addEventListener('click', () => {
+      const url = youtubeUrl.value.trim();
+      if (!url) {
+        setSourceStatus('Bitte zuerst einen YouTube-Link eingeben.');
+        return;
       }
+      loadYoutubeVideo(url);
     });
 
-    back1Btn.addEventListener('click', () => {
-      videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 1);
-    });
-
-    forward1Btn.addEventListener('click', () => {
-      const duration = isFinite(videoPlayer.duration) ? videoPlayer.duration : videoPlayer.currentTime + 1;
-      videoPlayer.currentTime = Math.min(duration, videoPlayer.currentTime + 1);
-    });
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    backBtn.addEventListener('click', () => stepBy(-getSkipAmount()));
+    forwardBtn.addEventListener('click', () => stepBy(getSkipAmount()));
 
     insertTimeBtn.addEventListener('click', () => {
-      const row = createRow(formatTime(videoPlayer.currentTime), '', '');
-      row.querySelector('.speaker-input').focus();
+      const row = createRow(formatTime(getCurrentTime()), '', '');
+      row.querySelector('.speaker-select').focus();
     });
 
     speedSelect.addEventListener('change', () => {
-      videoPlayer.playbackRate = Number(speedSelect.value);
+      setPlaybackRate(Number(speedSelect.value));
     });
 
     addRowBtn.addEventListener('click', () => {
@@ -351,17 +663,35 @@
       row.querySelector('.time-input').focus();
     });
 
+    applySpeakersBtn.addEventListener('click', () => {
+      refreshAllSpeakerDropdowns();
+    });
+
     exportTxtBtn.addEventListener('click', exportTxt);
     exportCsvBtn.addEventListener('click', exportCsv);
 
-    videoPlayer.addEventListener('timeupdate', () => {
-      timeDisplay.textContent = formatTime(videoPlayer.currentTime);
+    localVideo.addEventListener('timeupdate', updateTimeDisplay);
+    localVideo.addEventListener('loadedmetadata', () => {
+      updateTimeDisplay();
+      setPlaybackRate(Number(speedSelect.value));
     });
 
-    videoPlayer.addEventListener('loadedmetadata', () => {
-      timeDisplay.textContent = formatTime(0);
+    document.addEventListener('keydown', (event) => {
+      if (isTypingTarget(document.activeElement)) return;
+
+      if (event.code === 'Space') {
+        event.preventDefault();
+        togglePlayPause();
+      } else if (event.code === 'ArrowLeft') {
+        event.preventDefault();
+        stepBy(-getSkipAmount());
+      } else if (event.code === 'ArrowRight') {
+        event.preventDefault();
+        stepBy(getSkipAmount());
+      }
     });
 
+    parseSpeakerPresets();
     createRow('', 'Lehrkraft', '');
   </script>
 </body>
