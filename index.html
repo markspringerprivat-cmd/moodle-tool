@@ -42,91 +42,69 @@
 
     .layout {
       display: grid;
-      grid-template-columns: 260px minmax(0, 1fr);
-      gap: 20px;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: 18px;
       align-items: start;
     }
 
-    .stepper {
-      position: sticky;
-      top: 12px;
-      align-self: start;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      background: #fff;
-      padding: 16px;
+    .progress-rail {
+      position: relative;
+      width: 56px;
+      min-height: 100%;
     }
 
-    .stepper-title {
-      font-weight: bold;
-      margin-bottom: 12px;
-    }
-
-    .stepper-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .step-link {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-      color: #111;
-      border: 1px solid #e3e3e3;
-      border-radius: 10px;
-      padding: 10px 12px;
-      background: #fff;
-      cursor: pointer;
-    }
-
-    .step-link:hover {
-      background: #f8fbff;
-    }
-
-    .step-circle {
-      width: 28px;
-      height: 28px;
+    .rail-base,
+    .rail-done,
+    .rail-active {
+      position: absolute;
+      left: 26px;
+      width: 4px;
       border-radius: 999px;
-      border: 2px solid #b9c7dd;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: bold;
-      color: #567;
-      flex: 0 0 auto;
-      background: #fff;
     }
 
-    .step-link.done .step-circle {
+    .rail-base {
+      top: 0;
+      bottom: 0;
+      background: #d7dfe8;
+    }
+
+    .rail-done {
+      top: 0;
+      height: 0;
+      background: #7cc49a;
+      transition: height 0.35s ease;
+    }
+
+    .rail-active {
+      top: 0;
+      height: 0;
+      background: #2d6cdf;
+      transition: top 0.35s ease, height 0.35s ease;
+    }
+
+    .rail-dot {
+      position: absolute;
+      left: 16px;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      border: 3px solid #b8c5d4;
+      background: #ffffff;
+      transform: translateY(-50%);
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .rail-dot.is-done {
+      background: #7cc49a;
+      border-color: #7cc49a;
+    }
+
+    .rail-dot.is-active {
       background: #2d6cdf;
       border-color: #2d6cdf;
-      color: #fff;
-    }
-
-    .step-link.active-step {
-      border-color: #2d6cdf;
-      box-shadow: 0 0 0 2px rgba(45,108,223,0.12);
-    }
-
-    .step-text {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-width: 0;
-    }
-
-    .step-label {
-      font-weight: bold;
-      font-size: 14px;
-    }
-
-    .step-sub {
-      font-size: 12px;
-      color: #666;
-      line-height: 1.35;
+      box-shadow: 0 0 0 6px rgba(45,108,223,0.12);
     }
 
     .main-content {
@@ -143,6 +121,18 @@
       border-radius: 12px;
       padding: 16px;
       background: #fff;
+      transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .step-card.is-active {
+      border-color: #2d6cdf;
+      box-shadow: 0 0 0 3px rgba(45,108,223,0.10);
+      background: #f8fbff;
+    }
+
+    .step-card.is-done {
+      border-color: #bfe3cb;
+      background: #f5fcf7;
     }
 
     .section-heading {
@@ -583,14 +573,6 @@
     }
 
     @media (max-width: 1200px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-
-      .stepper {
-        position: static;
-      }
-
       .metadata-grid {
         grid-template-columns: 1fr 1fr;
       }
@@ -601,6 +583,22 @@
 
       .video-panel {
         grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 40px minmax(0, 1fr);
+      }
+
+      .rail-base,
+      .rail-done,
+      .rail-active {
+        left: 18px;
+      }
+
+      .rail-dot {
+        left: 8px;
       }
     }
 
@@ -636,46 +634,21 @@
     </p>
 
     <div class="layout">
-      <aside class="stepper">
-        <div class="stepper-title">Schritte</div>
-        <div class="stepper-list">
-          <a href="#step1" class="step-link" id="stepLink1">
-            <div class="step-circle">1</div>
-            <div class="step-text">
-              <div class="step-label">Metadaten und Sprecher</div>
-              <div class="step-sub">Metadaten eintragen und Sprecher anlegen</div>
-            </div>
-          </a>
+      <aside class="progress-rail" id="progressRail" aria-label="Fortschritt">
+        <div class="rail-base"></div>
+        <div class="rail-done" id="railDone"></div>
+        <div class="rail-active" id="railActive"></div>
 
-          <a href="#step2" class="step-link" id="stepLink2">
-            <div class="step-circle">2</div>
-            <div class="step-text">
-              <div class="step-label">Video importieren</div>
-              <div class="step-sub">Lokale Datei oder YouTube-Link laden</div>
-            </div>
-          </a>
-
-          <a href="#step3" class="step-link" id="stepLink3">
-            <div class="step-circle">3</div>
-            <div class="step-text">
-              <div class="step-label">Transkript anlegen</div>
-              <div class="step-sub">Zeilen erfassen und bearbeiten</div>
-            </div>
-          </a>
-
-          <a href="#step4" class="step-link" id="stepLink4">
-            <div class="step-circle">4</div>
-            <div class="step-text">
-              <div class="step-label">Mit ChatGPT analysieren</div>
-              <div class="step-sub">Fertiges Transkript kopieren und auswerten</div>
-            </div>
-          </a>
-        </div>
+        <button class="rail-dot" id="railDot1" type="button" aria-label="Schritt 1"></button>
+        <button class="rail-dot" id="railDot2" type="button" aria-label="Schritt 2"></button>
+        <button class="rail-dot" id="railDot3" type="button" aria-label="Schritt 3"></button>
+        <button class="rail-dot" id="railDot4" type="button" aria-label="Schritt 4"></button>
       </aside>
 
-      <main class="main-content">
-        <div class="section card" id="step1">
+      <main class="main-content" id="mainContent">
+        <div class="section card step-card" id="step1">
           <div class="section-heading">Schritt 1: Metadaten und Sprecher</div>
+
           <label>Metadaten</label>
           <div class="metadata-grid">
             <div>
@@ -718,8 +691,9 @@
           </div>
         </div>
 
-        <div class="section card" id="step2">
+        <div class="section card step-card" id="step2">
           <div class="section-heading">Schritt 2: Video importieren</div>
+
           <div class="source-grid">
             <div class="field-group">
               <label for="videoInput">Lokale Videodatei</label>
@@ -823,11 +797,12 @@
           </div>
         </div>
 
-        <div class="section card" id="step3">
+        <div class="section card step-card" id="step3">
           <div class="section-heading">Schritt 3: Transkript anlegen</div>
+
           <div class="top-actions">
-            <button id="exportTxtBtn" type="button">Als TXT exportieren</button>
-            <button id="exportCsvBtn" type="button" class="secondary">Als CSV exportieren</button>
+            <button id="exportTxtBtn" type="button">TXT speichern</button>
+            <button id="exportCsvBtn" type="button" class="secondary">CSV speichern</button>
             <button id="copyTranscriptBtn" type="button" class="secondary">In Zwischenablage kopieren</button>
           </div>
 
@@ -852,8 +827,9 @@
           </div>
         </div>
 
-        <div class="section card" id="step4">
+        <div class="section card step-card" id="step4">
           <div class="section-heading">Schritt 4: Mit ChatGPT analysieren</div>
+
           <div class="top-actions">
             <button id="analyzeChatgptBtn" type="button">Fertiges Transkript mit ChatGPT analysieren lassen</button>
           </div>
@@ -940,15 +916,20 @@
     const cancelPopupBtn = document.getElementById('cancelPopupBtn');
     const continueChatgptBtn = document.getElementById('continueChatgptBtn');
 
-    const stepLink1 = document.getElementById('stepLink1');
-    const stepLink2 = document.getElementById('stepLink2');
-    const stepLink3 = document.getElementById('stepLink3');
-    const stepLink4 = document.getElementById('stepLink4');
+    const mainContent = document.getElementById('mainContent');
+    const progressRail = document.getElementById('progressRail');
+    const railDone = document.getElementById('railDone');
+    const railActive = document.getElementById('railActive');
 
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
     const step3 = document.getElementById('step3');
     const step4 = document.getElementById('step4');
+
+    const railDot1 = document.getElementById('railDot1');
+    const railDot2 = document.getElementById('railDot2');
+    const railDot3 = document.getElementById('railDot3');
+    const railDot4 = document.getElementById('railDot4');
 
     let speakerPresets = [];
     let currentSource = null;
@@ -956,40 +937,126 @@
     let youtubeApiReady = false;
     let youtubeTimeInterval = null;
     let videoVisible = true;
-    let step4Done = false;
 
-    function setDone(link, done) {
-      link.classList.toggle('done', done);
+    let step3DoneFlag = false;
+    let step4DoneFlag = false;
+    let activeStepId = 'step1';
+
+    let previousStepStates = {
+      1: false,
+      2: false,
+      3: false,
+      4: false
+    };
+
+    const stepElements = {
+      1: step1,
+      2: step2,
+      3: step3,
+      4: step4
+    };
+
+    const railDots = {
+      1: railDot1,
+      2: railDot2,
+      3: railDot3,
+      4: railDot4
+    };
+
+    function scrollToStep(stepNumber) {
+      const el = stepElements[stepNumber];
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    railDot1.addEventListener('click', () => scrollToStep(1));
+    railDot2.addEventListener('click', () => scrollToStep(2));
+    railDot3.addEventListener('click', () => scrollToStep(3));
+    railDot4.addEventListener('click', () => scrollToStep(4));
+
+    function syncRailPositions() {
+      const sections = [step1, step2, step3, step4];
+      const railRect = progressRail.getBoundingClientRect();
+      const mainRect = mainContent.getBoundingClientRect();
+
+      sections.forEach((section, index) => {
+        const dot = railDots[index + 1];
+        const sectionTop = section.offsetTop;
+        const sectionMiddle = sectionTop + (section.offsetHeight / 2);
+        dot.style.top = sectionMiddle + 'px';
+      });
+
+      updateRailLineVisuals();
+    }
+
+    function getDotCenterY(stepNumber) {
+      const dot = railDots[stepNumber];
+      return dot.offsetTop + (dot.offsetHeight / 2);
+    }
+
+    function updateRailLineVisuals() {
+      const stepStates = computeStepStates();
+      const completedSteps = Object.keys(stepStates)
+        .map(Number)
+        .filter(n => stepStates[n]);
+
+      let lastDone = 0;
+      for (let i = 1; i <= 4; i++) {
+        if (stepStates[i]) lastDone = i;
+      }
+
+      if (lastDone > 0) {
+        railDone.style.top = getDotCenterY(1) + 'px';
+        railDone.style.height = Math.max(0, getDotCenterY(lastDone) - getDotCenterY(1)) + 'px';
+      } else {
+        railDone.style.height = '0px';
+      }
+
+      if (activeStepId) {
+        const activeNumber = Number(activeStepId.replace('step', ''));
+        const activeTopBase = lastDone >= 1 ? getDotCenterY(Math.min(lastDone + 1, activeNumber, 4)) : getDotCenterY(1);
+        const activeTop = Math.min(activeTopBase, getDotCenterY(activeNumber));
+        const activeHeight = Math.max(0, getDotCenterY(activeNumber) - activeTop);
+
+        railActive.style.top = activeTop + 'px';
+        railActive.style.height = activeHeight + 'px';
+      }
+
+      for (let i = 1; i <= 4; i++) {
+        railDots[i].classList.remove('is-active', 'is-done');
+        if (stepStates[i]) {
+          railDots[i].classList.add('is-done');
+        } else if (activeStepId === 'step' + i) {
+          railDots[i].classList.add('is-active');
+        }
+      }
     }
 
     function setActiveStep(stepId) {
-      [stepLink1, stepLink2, stepLink3, stepLink4].forEach(el => el.classList.remove('active-step'));
-      if (stepId === 'step1') stepLink1.classList.add('active-step');
-      if (stepId === 'step2') stepLink2.classList.add('active-step');
-      if (stepId === 'step3') stepLink3.classList.add('active-step');
-      if (stepId === 'step4') stepLink4.classList.add('active-step');
+      activeStepId = stepId;
+
+      [step1, step2, step3, step4].forEach(el => el.classList.remove('is-active'));
+      const activeEl = document.getElementById(stepId);
+      if (activeEl) activeEl.classList.add('is-active');
+
+      updateSectionDoneStates();
+      updateRailLineVisuals();
     }
 
-    function updateStepStates() {
-      const metaDone =
-        metaSubject.value.trim() !== '' &&
-        metaClass.value.trim() !== '' &&
-        metaTopic.value.trim() !== '' &&
-        speakerPresets.length > 0;
+    function updateSectionDoneStates() {
+      const states = computeStepStates();
 
-      const videoDone = currentSource !== null;
-
-      const transcriptDone = Array.from(tableBody.querySelectorAll('.utterance-input'))
-        .some(el => el.value.trim() !== '');
-
-      setDone(stepLink1, metaDone);
-      setDone(stepLink2, videoDone);
-      setDone(stepLink3, transcriptDone);
-      setDone(stepLink4, step4Done);
+      [step1, step2, step3, step4].forEach((el, index) => {
+        const stepNo = index + 1;
+        el.classList.remove('is-done');
+        if (states[stepNo] && activeStepId !== 'step' + stepNo) {
+          el.classList.add('is-done');
+        }
+      });
     }
 
     function observeSections() {
-      const sections = [step1, step2, step3, step4];
       const observer = new IntersectionObserver((entries) => {
         const visible = entries
           .filter(entry => entry.isIntersecting)
@@ -999,10 +1066,48 @@
           setActiveStep(visible[0].target.id);
         }
       }, {
-        threshold: [0.2, 0.4, 0.6]
+        threshold: [0.25, 0.45, 0.65]
       });
 
-      sections.forEach(section => observer.observe(section));
+      [step1, step2, step3, step4].forEach(section => observer.observe(section));
+    }
+
+    function computeStepStates() {
+      const transcriptHasText = Array.from(tableBody.querySelectorAll('.utterance-input'))
+        .some(el => el.value.trim() !== '');
+
+      return {
+        1:
+          metaSubject.value.trim() !== '' &&
+          metaClass.value.trim() !== '' &&
+          metaTopic.value.trim() !== '' &&
+          speakerPresets.length > 0,
+        2: currentSource !== null,
+        3: transcriptHasText && step3DoneFlag,
+        4: step4DoneFlag
+      };
+    }
+
+    function maybeAutoAdvance(newStates) {
+      if (!previousStepStates[1] && newStates[1]) {
+        scrollToStep(2);
+        setTimeout(() => setActiveStep('step2'), 450);
+      } else if (!previousStepStates[2] && newStates[2]) {
+        scrollToStep(3);
+        setTimeout(() => setActiveStep('step3'), 450);
+      } else if (!previousStepStates[3] && newStates[3]) {
+        scrollToStep(4);
+        setTimeout(() => setActiveStep('step4'), 450);
+      }
+    }
+
+    function updateStepStates() {
+      const states = computeStepStates();
+      maybeAutoAdvance(states);
+      previousStepStates = { ...states };
+      updateSectionDoneStates();
+      updateRailLineVisuals();
+      requestAnimationFrame(syncRailPositions);
     }
 
     function openAnalysisPopup(prefilledPrompt) {
@@ -1048,6 +1153,7 @@
       if (!el) return;
       el.style.height = '38px';
       el.style.height = Math.max(38, el.scrollHeight) + 'px';
+      requestAnimationFrame(syncRailPositions);
     }
 
     function scrollTableToBottom() {
@@ -1094,6 +1200,8 @@
           updateStepStates();
         });
       });
+
+      requestAnimationFrame(syncRailPositions);
     }
 
     function addSpeaker() {
@@ -1228,6 +1336,7 @@
         repairSpeakerBorders();
         updatePauseDurations();
         updateStepStates();
+        requestAnimationFrame(syncRailPositions);
       });
 
       attachTimeListeners(tr);
@@ -1236,6 +1345,7 @@
       updatePauseDurations();
       scrollTableToBottom();
       updateStepStates();
+      requestAnimationFrame(syncRailPositions);
       return tr;
     }
 
@@ -1264,6 +1374,7 @@
         repairSpeakerBorders();
         updatePauseDurations();
         updateStepStates();
+        requestAnimationFrame(syncRailPositions);
       });
 
       attachTimeListeners(tr);
@@ -1272,6 +1383,7 @@
       updatePauseDurations();
       scrollTableToBottom();
       updateStepStates();
+      requestAnimationFrame(syncRailPositions);
       return tr;
     }
 
@@ -1453,6 +1565,7 @@
       const rows = getRowsData();
       const content = buildMetadataTextFull() + buildTranscriptTxt(rows);
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
+      step3DoneFlag = true;
       updateStepStates();
     }
 
@@ -1478,6 +1591,7 @@
 
       const bom = '\uFEFF';
       downloadFile(bom + lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+      step3DoneFlag = true;
       updateStepStates();
     }
 
@@ -1691,6 +1805,7 @@
 
         if (!metaTitle.value.trim()) metaTitle.value = file.name;
         if (!metaSource.value.trim()) metaSource.value = 'Lokale Videodatei';
+
         updateStepStates();
         return;
       }
@@ -1778,6 +1893,7 @@
 
       if (ok) {
         setSourceStatus('Transkript wurde in die Zwischenablage kopiert.');
+        step3DoneFlag = true;
       } else {
         setSourceStatus('Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
@@ -1801,7 +1917,7 @@
         setSourceStatus('ChatGPT wurde geöffnet. Das Kopieren in die Zwischenablage hat nicht funktioniert.');
       }
 
-      step4Done = true;
+      step4DoneFlag = true;
       updateStepStates();
       closeAnalysisPopup();
     });
@@ -1812,16 +1928,24 @@
       setPlaybackRate(Number(speedSelect.value));
       if (!metaLength.value.trim() && isFinite(localVideo.duration)) {
         metaLength.value = formatTime(localVideo.duration);
-        updateStepStates();
       }
+      updateStepStates();
+    });
+
+    window.addEventListener('resize', () => {
+      requestAnimationFrame(syncRailPositions);
     });
 
     updateVideoVisibility();
     renderSpeakerTags();
     createStandardRow('', '', '');
-    updateStepStates();
     observeSections();
     setActiveStep('step1');
+    updateStepStates();
+
+    setTimeout(() => {
+      syncRailPositions();
+    }, 100);
   </script>
 </body>
 </html>
