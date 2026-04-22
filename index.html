@@ -172,22 +172,26 @@
     .video-panel {
       margin-top: 14px;
       display: grid;
-      grid-template-columns: minmax(320px, 780px) 240px;
+      grid-template-columns: minmax(320px, 720px) 240px;
       gap: 18px;
-      align-items: start;
+      align-items: stretch;
       justify-content: center;
     }
 
     .video-shell {
       width: 100%;
+      display: flex;
+      align-items: stretch;
     }
 
     video,
     #youtubeContainer {
       width: 100%;
-      max-height: 440px;
+      height: 100%;
+      max-height: 420px;
       background: #000;
       border-radius: 12px;
+      object-fit: contain;
     }
 
     #youtubeContainer {
@@ -210,14 +214,14 @@
     }
 
     .controls-side {
-      position: sticky;
-      top: 0;
-      z-index: 20;
       background: #ffffff;
       border: 1px solid #ddd;
       border-radius: 12px;
       padding: 14px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .controls-stack {
@@ -335,10 +339,6 @@
       padding: 10px 14px;
     }
 
-    .mono {
-      font-family: Consolas, monospace;
-    }
-
     .speaker-blank,
     .pause-blank {
       border: none !important;
@@ -374,10 +374,6 @@
 
       .video-panel {
         grid-template-columns: 1fr;
-      }
-
-      .controls-side {
-        position: static;
       }
     }
 
@@ -465,6 +461,7 @@
 
         <div id="controlsCard" class="controls-side hidden">
           <div class="controls-stack">
+            <button id="toggleVideoBtn" type="button">Video ausblenden</button>
             <button id="playPauseBtn" type="button">Play / Pause</button>
             <button id="backBtn" type="button" class="secondary">Zurück</button>
             <button id="forwardBtn" type="button" class="secondary">Vor</button>
@@ -496,13 +493,6 @@
                 <option value="2">2.0x</option>
               </select>
             </div>
-          </div>
-
-          <div class="hint">
-            Globale Shortcuts: <span class="mono">Shift + Leertaste</span> = Play/Pause,
-            <span class="mono">Shift + ←</span> = zurück,
-            <span class="mono">Shift + →</span> = vor,
-            <span class="mono">Shift + N</span> = Sprecherwechsel.
           </div>
         </div>
       </div>
@@ -547,6 +537,7 @@
     const controlsCard = document.getElementById('controlsCard');
     const tableScrollWrap = document.getElementById('tableScrollWrap');
 
+    const toggleVideoBtn = document.getElementById('toggleVideoBtn');
     const playPauseBtn = document.getElementById('playPauseBtn');
     const backBtn = document.getElementById('backBtn');
     const forwardBtn = document.getElementById('forwardBtn');
@@ -576,6 +567,7 @@
     let youtubePlayer = null;
     let youtubeApiReady = false;
     let youtubeTimeInterval = null;
+    let videoVisible = true;
 
     function formatTime(seconds) {
       const s = Math.max(0, Number(seconds) || 0);
@@ -951,16 +943,12 @@
       const meta = getMetadata();
 
       const lines = [
-        ['Metadaten', 'Wert'].map(escapeCsv).join(';'),
-        ['Videoname', meta.title].map(escapeCsv).join(';'),
-        ['Länge des Ausschnitts', meta.length].map(escapeCsv).join(';'),
-        ['Quelle', meta.source].map(escapeCsv).join(';'),
-        ['Transkribiert von', meta.author].map(escapeCsv).join(';'),
-        '',
-        ['Sprecher']
-          .concat(speakerPresets)
-          .map(escapeCsv)
-          .join(';'),
+        ['Metadaten', '', ''].map(escapeCsv).join(';'),
+        ['Videoname', meta.title, ''].map(escapeCsv).join(';'),
+        ['Länge des Ausschnitts', meta.length, ''].map(escapeCsv).join(';'),
+        ['Quelle', meta.source, ''].map(escapeCsv).join(';'),
+        ['Transkribiert von', meta.author, ''].map(escapeCsv).join(';'),
+        ['Sprecher'].concat(speakerPresets).map(escapeCsv).join(';'),
         '',
         ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(';'),
         ...rows.map(r => [r.time, r.type === 'pause' ? 'Pause' : r.speaker, r.utterance].map(escapeCsv).join(';'))
@@ -984,9 +972,8 @@
 
     function showLocalVideo() {
       currentSource = 'local';
-      localVideo.style.display = 'block';
+      localVideo.style.display = videoVisible ? 'block' : 'none';
       youtubeContainer.style.display = 'none';
-      stopYoutubeTimePolling();
       showControls();
     }
 
@@ -994,9 +981,18 @@
       currentSource = 'youtube';
       localVideo.pause();
       localVideo.style.display = 'none';
-      youtubeContainer.style.display = 'block';
+      youtubeContainer.style.display = videoVisible ? 'block' : 'none';
       startYoutubeTimePolling();
       showControls();
+    }
+
+    function updateVideoVisibility() {
+      if (currentSource === 'local') {
+        localVideo.style.display = videoVisible ? 'block' : 'none';
+      } else if (currentSource === 'youtube') {
+        youtubeContainer.style.display = videoVisible ? 'block' : 'none';
+      }
+      toggleVideoBtn.textContent = videoVisible ? 'Video ausblenden' : 'Video einblenden';
     }
 
     function getCurrentTime() {
@@ -1098,7 +1094,9 @@
         });
       }
 
-      showYoutubeVideo();
+      currentSource = 'youtube';
+      updateVideoVisibility();
+      showControls();
       setSourceStatus('YouTube-Video geladen.');
       if (!metaSource.value.trim()) metaSource.value = url;
     }
@@ -1123,7 +1121,9 @@
         const objectUrl = URL.createObjectURL(file);
         localVideo.src = objectUrl;
         localVideo.load();
-        showLocalVideo();
+        currentSource = 'local';
+        updateVideoVisibility();
+        showControls();
         setPlaybackRate(Number(speedSelect.value));
         setSourceStatus(`Lokales Video geladen: ${file.name}`);
 
@@ -1141,6 +1141,11 @@
     }
 
     loadSourceBtn.addEventListener('click', loadSelectedSource);
+
+    toggleVideoBtn.addEventListener('click', () => {
+      videoVisible = !videoVisible;
+      updateVideoVisibility();
+    });
 
     playPauseBtn.addEventListener('click', togglePlayPause);
     backBtn.addEventListener('click', () => stepBy(-getSkipAmount()));
@@ -1176,24 +1181,6 @@
       setPlaybackRate(Number(speedSelect.value));
       if (!metaLength.value.trim() && isFinite(localVideo.duration)) {
         metaLength.value = formatTime(localVideo.duration);
-      }
-    });
-
-    document.addEventListener('keydown', (event) => {
-      if (!event.shiftKey) return;
-
-      if (event.code === 'Space') {
-        event.preventDefault();
-        togglePlayPause();
-      } else if (event.code === 'ArrowLeft') {
-        event.preventDefault();
-        stepBy(-getSkipAmount());
-      } else if (event.code === 'ArrowRight') {
-        event.preventDefault();
-        stepBy(getSkipAmount());
-      } else if (event.code === 'KeyN') {
-        event.preventDefault();
-        addRowSpeakerChange();
       }
     });
 
