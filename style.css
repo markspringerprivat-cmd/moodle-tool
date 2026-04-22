@@ -1,0 +1,58 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  margin: 0;
+  padding: 40px 20px;
+}
+
+.custom-app {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 24px;
+  border: 1px solid #cccccc;
+  border-radius: 12px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.custom-app h1 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.custom-app p {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.custom-app label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.custom-app textarea {
+  width: 100%;
+  min-height: 220px;
+  padding: 12px;
+  border: 1px solid #bbbbbb;
+  border-radius: 8px;
+  box-sizing: border-box;
+  resize: vertical;
+  font-size: 16px;
+  font-family: Arial, sans-serif;
+}
+
+.button-row {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.button-row button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  background: #2d6cdf;
+  color: white;
+}

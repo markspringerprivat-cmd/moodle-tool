@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hello World Tool</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="custom-app">
+    <h1>Hello World</h1>
+    <p>Gib einen Text ein und lade ihn direkt als Datei herunter.</p>
+
+    <label for="meinText"><strong>Text eingeben:</strong></label>
+    <textarea id="meinText" rows="10" placeholder="Hier deinen Text eingeben..."></textarea>
+
+    <div class="button-row">
+      <button type="button" onclick="downloadTextDatei()">Text herunterladen</button>
+    </div>
+  </div>
+
+  <script src="download.js"></script>
+</body>
+</html>
