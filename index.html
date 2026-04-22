@@ -433,17 +433,51 @@
       background: #ffffff;
       border-radius: 16px;
       padding: 24px 22px;
-      width: min(560px, calc(100% - 32px));
+      width: min(760px, calc(100% - 32px));
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
       box-shadow: 0 12px 34px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
       gap: 16px;
-      text-align: center;
+      text-align: left;
     }
 
-    .global-popup-box button {
-      align-self: center;
-      min-width: 110px;
+    .popup-title {
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      margin: 0;
+    }
+
+    .popup-hint {
+      line-height: 1.5;
+      color: #333;
+    }
+
+    .popup-editor-label {
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .popup-editor {
+      width: 100%;
+      min-height: 220px;
+      resize: vertical;
+      box-sizing: border-box;
+      padding: 12px;
+      border: 1px solid #bbb;
+      border-radius: 10px;
+      font-size: 15px;
+      font-family: Arial, sans-serif;
+      line-height: 1.45;
+    }
+
+    .popup-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
     }
 
     @media (max-width: 1200px) {
@@ -659,8 +693,20 @@
 
   <div id="globalPopup" class="global-popup hidden">
     <div class="global-popup-box">
-      <span id="globalPopupText">Transkript wurde kopiert.</span>
-      <button id="closePopupBtn" type="button">OK</button>
+      <h2 class="popup-title">Transkript wurde kopiert und kann jetzt in den Chatbereich von ChatGPT eingefügt werden.</h2>
+      <div class="popup-hint">
+        Klicke in den Chatbereich von ChatGPT und füge den Inhalt ein mit <strong>STRG + V</strong> oder per <strong>Rechtsklick → Einfügen</strong>.
+      </div>
+
+      <div>
+        <div class="popup-editor-label">Analyseauftrag</div>
+        <textarea id="popupPromptEditor" class="popup-editor"></textarea>
+      </div>
+
+      <div class="popup-actions">
+        <button id="cancelPopupBtn" type="button" class="secondary">Abbrechen</button>
+        <button id="continueChatgptBtn" type="button">Weiter zu ChatGPT</button>
+      </div>
     </div>
   </div>
 
@@ -716,8 +762,9 @@
     const tableBody = document.getElementById('tableBody');
 
     const globalPopup = document.getElementById('globalPopup');
-    const globalPopupText = document.getElementById('globalPopupText');
-    const closePopupBtn = document.getElementById('closePopupBtn');
+    const popupPromptEditor = document.getElementById('popupPromptEditor');
+    const cancelPopupBtn = document.getElementById('cancelPopupBtn');
+    const continueChatgptBtn = document.getElementById('continueChatgptBtn');
 
     let speakerPresets = ['Lehrkraft', 'Schüler 1', 'Schüler 2', 'Schüler 3', 'Schüler 4'];
     let currentSource = null;
@@ -725,19 +772,21 @@
     let youtubeApiReady = false;
     let youtubeTimeInterval = null;
     let videoVisible = true;
+    let pendingChatgptText = '';
 
-    function showPopup(message) {
-      globalPopupText.textContent = message;
+    function openAnalysisPopup(prefilledPrompt) {
+      popupPromptEditor.value = prefilledPrompt;
       globalPopup.classList.remove('hidden');
     }
 
-    function closePopup() {
+    function closeAnalysisPopup() {
       globalPopup.classList.add('hidden');
+      pendingChatgptText = '';
     }
 
-    closePopupBtn.addEventListener('click', closePopup);
+    cancelPopupBtn.addEventListener('click', closeAnalysisPopup);
     globalPopup.addEventListener('click', (event) => {
-      if (event.target === globalPopup) closePopup();
+      if (event.target === globalPopup) closeAnalysisPopup();
     });
 
     function formatTime(seconds) {
@@ -1090,10 +1139,8 @@
       }).join('\n');
     }
 
-    function buildClipboardText() {
-      const rows = getRowsData();
-
-      const analysePrompt = [
+    function buildDefaultAnalysisPrompt() {
+      return [
         'Bitte analysiere das folgende Transkript im Hinblick auf die Gesprächsführung.',
         'Beziehe dich dabei insbesondere auf:',
         '- Struktur und Klarheit der Gesprächsführung',
@@ -1101,13 +1148,14 @@
         '- wertschätzende und professionelle Kommunikation',
         '- Möglichkeiten zur Verbesserung',
         '',
-        'Bitte formuliere die Analyse auf Deutsch, sachlich und konkret.',
-        '',
-        'TRANSKRIPT:',
-        ''
+        'Bitte formuliere die Analyse auf Deutsch, sachlich und konkret.'
       ].join('\n');
+    }
 
-      return analysePrompt + buildMetadataText() + buildTranscriptTxt(rows);
+    function buildClipboardTextWithPrompt(customPrompt) {
+      const rows = getRowsData();
+      const promptText = (customPrompt || '').trim();
+      return promptText + '\n\nTRANSKRIPT:\n\n' + buildMetadataText() + buildTranscriptTxt(rows);
     }
 
     async function copyTextToClipboard(text) {
@@ -1147,7 +1195,7 @@
     }
 
     function exportTxt() {
-      const content = buildClipboardText();
+      const content = buildClipboardTextWithPrompt(buildDefaultAnalysisPrompt());
       downloadFile(content, 'transkript.txt', 'text/plain;charset=utf-8');
     }
 
@@ -1456,31 +1504,35 @@
     exportCsvBtn.addEventListener('click', exportCsv);
 
     copyTranscriptBtn.addEventListener('click', async () => {
-      const text = buildClipboardText();
+      const text = buildClipboardTextWithPrompt(buildDefaultAnalysisPrompt());
       const ok = await copyTextToClipboard(text);
 
       if (ok) {
         setSourceStatus('Transkript wurde in die Zwischenablage kopiert.');
-        showPopup('Transkript wurde kopiert und enthält bereits den Hinweis, dass es um die Analyse der Gesprächsführung geht.');
+        openAnalysisPopup(buildDefaultAnalysisPrompt());
       } else {
         setSourceStatus('Kopieren in die Zwischenablage hat nicht funktioniert.');
-        showPopup('Das Kopieren hat leider nicht funktioniert.');
       }
     });
 
-    analyzeChatgptBtn.addEventListener('click', async () => {
-      const text = buildClipboardText();
-      const ok = await copyTextToClipboard(text);
+    analyzeChatgptBtn.addEventListener('click', () => {
+      openAnalysisPopup(buildDefaultAnalysisPrompt());
+    });
+
+    continueChatgptBtn.addEventListener('click', async () => {
+      const finalPrompt = popupPromptEditor.value.trim();
+      const fullText = buildClipboardTextWithPrompt(finalPrompt);
+      const ok = await copyTextToClipboard(fullText);
 
       window.open('https://chatgpt.com/', '_blank', 'noopener');
 
       if (ok) {
         setSourceStatus('Transkript wurde kopiert. ChatGPT wurde in einem neuen Tab geöffnet.');
-        showPopup('Transkript wurde kopiert und kann jetzt im Chat-Bereich von ChatGPT eingefügt werden.');
       } else {
         setSourceStatus('ChatGPT wurde geöffnet. Das Kopieren in die Zwischenablage hat nicht funktioniert.');
-        showPopup('ChatGPT wurde geöffnet. Das Transkript konnte aber nicht automatisch in die Zwischenablage kopiert werden.');
       }
+
+      closeAnalysisPopup();
     });
 
     localVideo.addEventListener('timeupdate', updateTimeDisplay);
