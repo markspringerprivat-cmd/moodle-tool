@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transkript-Editor</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #ffffff; font-family: Arial, sans-serif; color: #111; overflow-y: auto; scroll-behavior: smooth; }
+    body { display: block; }
+    .app { width: 100%; max-width: none; padding: 20px; box-sizing: border-box; margin: 0; }
+    h1 { text-align: left; margin: 0 0 10px 0; }
+    .intro { text-align: left; color: #444; margin-bottom: 20px; line-height: 1.5; max-width: 1200px; }
+    .layout { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 18px; align-items: start; }
+    .progress-rail { position: relative; width: 56px; align-self: stretch; min-height: 100%; }
+    .rail-base, .rail-active { position: absolute; left: 26px; width: 4px; border-radius: 999px; }
+    .rail-base { display: none; }
+    .rail-active { top: 0; height: 0; background: #2d6cdf; transition: height 0.45s ease; }
+    .rail-dot { position: absolute; left: 16px; width: 24px; height: 24px; border-radius: 999px; border: 3px solid #b8c5d4; background: #ffffff; transform: translateY(-50%); cursor: pointer; padding: 0; transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease; opacity: 0; pointer-events: none; }
+    .rail-dot.is-visible { opacity: 1; pointer-events: auto; }
+    .rail-dot.is-done { background: #2d6cdf; border-color: #2d6cdf; }
+    .rail-dot.is-active { background: #2d6cdf; border-color: #2d6cdf; box-shadow: 0 0 0 6px rgba(45, 108, 223, 0.12); }
+    .main-content { min-width: 0; }
+    .section { margin-top: 18px; scroll-margin-top: 12px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; background: #fff; overflow: hidden; transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
+    .card-header { padding: 16px 16px 0 16px; }
+    .section-heading { font-size: 18px; font-weight: bold; margin: 0 0 12px 0; }
+    .card-content { padding: 0 16px 16px 16px; max-height: 4000px; opacity: 1; overflow: hidden; transition: max-height 0.5s ease, opacity 0.35s ease, padding 0.35s ease; }
+    .card.is-collapsed .card-content { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+    .card.is-hidden { opacity: 0; transform: translateY(12px); pointer-events: none; }
+    .card.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .card.is-focus { border-color: rgba(45, 108, 223, 0.45); box-shadow: 0 0 0 4px rgba(45, 108, 223, 0.10), 0 10px 30px rgba(45, 108, 223, 0.08); }
+    .metadata-grid { display: grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap: 12px; }
+    .source-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+    .field-group { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; }
+    label { display: block; font-weight: bold; margin-bottom: 8px; }
+    input[type="file"], input[type="text"], select, textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #bbb; border-radius: 8px; font-size: 15px; background: #fff; font-family: Arial, sans-serif; }
+    textarea { resize: none; overflow-y: hidden; line-height: 1.4; }
+    .speaker-input-row { display: flex; gap: 10px; align-items: center; }
+    .speaker-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .speaker-tag { display: inline-flex; align-items: center; gap: 8px; background: #f5f7fb; border: 1px solid #d8dfeb; border-radius: 999px; padding: 8px 12px; font-size: 14px; }
+    .speaker-remove { background: transparent; border: none; color: #666; cursor: pointer; padding: 0; margin: 0; font-size: 16px; line-height: 1; }
+    button { padding: 10px 16px; border: none; border-radius: 8px; background: #2d6cdf; color: white; cursor: pointer; font-size: 15px; white-space: nowrap; }
+    button.secondary { background: #666; }
+    button.small-btn { padding: 6px 8px; font-size: 12px; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .status { margin-top: 10px; font-size: 14px; color: #444; }
+    .video-panel { margin-top: 14px; display: grid; grid-template-columns: minmax(320px, 780px) 260px; gap: 18px; align-items: start; justify-content: center; }
+    .video-column { width: 100%; }
+    .video-shell { width: 100%; min-height: 0; display: none; }
+    .video-shell.active { display: block; }
+    #localVideo, #youtubeContainer { width: 100%; background: #000; border-radius: 12px; object-fit: contain; display: none; }
+    #localVideo.active, #youtubeContainer.active { display: block; }
+    #localVideo.video-mode { height: 460px; min-height: 460px; max-height: 460px; }
+    #localVideo.audio-only-local { height: 96px; min-height: 96px; max-height: 96px; background: #000; object-fit: initial; border-radius: 12px; }
+    #youtubeContainer.video-mode { aspect-ratio: 16 / 9; min-height: 460px; max-height: 460px; overflow: hidden; }
+    #youtubePlayer { width: 100%; height: 100%; }
+    .controls-side { background: #ffffff; border: 1px solid #ddd; border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); display: none; flex-direction: column; justify-content: flex-start; }
+    .controls-side.active { display: flex; }
+    .controls-stack { display: flex; flex-direction: column; gap: 10px; }
+    .controls-stack button, .controls-stack select, .controls-stack .time-box { width: 100%; box-sizing: border-box; }
+    .controls-stack select, .controls-under-video select { padding: 10px 12px; border: 1px solid #bbb; border-radius: 8px; font-size: 15px; background: #fff; font-family: Arial, sans-serif; }
+    .control-group label { margin-bottom: 6px; font-weight: bold; }
+    .time-box { border: 1px solid #bbb; border-radius: 8px; padding: 10px 12px; background: #f8f8f8; font-weight: bold; color: #333; text-align: center; }
+    .controls-under-video { margin-top: 4px; display: none; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+    .controls-under-video.active { display: flex; }
+    .controls-under-video button, .controls-under-video select, .controls-under-video .time-box { width: auto; min-width: 130px; box-sizing: border-box; }
+    .controls-under-video .control-group { min-width: 130px; }
+    .controls-under-video .control-group label { margin-bottom: 6px; font-weight: bold; font-size: 14px; }
+    .top-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .table-scroll-wrap { max-height: 420px; overflow-y: auto; border: 1px solid #ddd; border-radius: 12px 12px 0 0; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; }
+    th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+    th { background: #f5f5f5; text-align: left; position: sticky; top: 0; z-index: 5; }
+    .row-actions { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; justify-content: flex-start; width: 100%; box-sizing: border-box; overflow: hidden; }
+    .row-actions .small-btn { white-space: nowrap; flex: 0 0 auto; max-width: 100%; }
+    .utterance-input { min-height: 38px; height: 38px; }
+    .table-add-row-wrap { display: flex; gap: 8px; margin-top: 0; justify-content: flex-start; flex-wrap: wrap; }
+    .table-add-row { display: inline-block; border: 1px solid #cfdcff; border-radius: 0 0 8px 8px; background: #eef4ff; color: #2d6cdf; font-weight: 600; flex: 0 0 auto; width: auto; padding: 10px 14px; }
+    .speaker-blank, .pause-blank { border: none !important; background: transparent !important; box-shadow: none !important; pointer-events: none; color: transparent; padding: 10px 0 !important; }
+    .speaker-continuation { border-top: none !important; }
+    .pause-display { color: #444; padding: 10px 12px; min-height: 38px; display: flex; align-items: center; box-sizing: border-box; border: 1px solid transparent; }
+    .card-footer-help { display: flex; justify-content: flex-end; padding: 0 16px 14px 16px; }
+    .help-btn { width: 30px; height: 30px; min-width: 30px; padding: 0; border-radius: 999px; background: #eef4ff; color: #2d6cdf; border: 1px solid #cfdcff; font-weight: bold; font-size: 16px; line-height: 1; }
+    .help-btn:hover { background: #e3edff; }
+    .global-popup, .help-popup { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.25); display: block; z-index: 9999; }
+    .global-popup.hidden, .help-popup.hidden { display: none !important; }
+    .global-popup-box, .help-popup-box { position: fixed; left: 50%; transform: translateX(-50%); background: #ffffff; border-radius: 16px; max-height: calc(100vh - 24px); overflow-y: auto; box-shadow: 0 12px 34px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; gap: 16px; text-align: left; box-sizing: border-box; }
+    .global-popup-box { width: min(760px, calc(100% - 32px)); padding: 24px 22px; }
+    .help-popup-box { width: min(520px, calc(100% - 32px)); padding: 20px 20px 16px 20px; }
+    .popup-title { font-size: 20px; font-weight: bold; text-align: center; margin: 0; }
+    .popup-hint { line-height: 1.5; color: #333; }
+    .popup-editor-label { font-weight: bold; margin-bottom: 6px; }
+    .popup-editor { width: 100%; min-height: 220px; resize: vertical; box-sizing: border-box; padding: 12px; border: 1px solid #bbb; border-radius: 10px; font-size: 15px; font-family: Arial, sans-serif; line-height: 1.45; }
+    .popup-actions, .help-popup-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .help-popup-title { margin: 0 0 10px 0; font-size: 19px; font-weight: bold; }
+    .help-popup-text { line-height: 1.55; color: #333; font-size: 15px; white-space: pre-line; }
+
+    html.device-tablet body,
+    html.device-ipad body {
+      -webkit-text-size-adjust: 100%;
+    }
+    html.device-tablet .app,
+    html.device-ipad .app {
+      padding: 16px;
+    }
+    html.device-tablet .layout,
+    html.device-ipad .layout {
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 12px;
+    }
+    html.device-tablet .progress-rail,
+    html.device-ipad .progress-rail {
+      width: 34px;
+    }
+    html.device-tablet .rail-active,
+    html.device-ipad .rail-active,
+    html.device-tablet .rail-base,
+    html.device-ipad .rail-base {
+      left: 15px;
+    }
+    html.device-tablet .rail-dot,
+    html.device-ipad .rail-dot {
+      left: 4px;
+      width: 22px;
+      height: 22px;
+    }
+    html.device-tablet .metadata-grid,
+    html.device-ipad .metadata-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    html.device-tablet .source-grid,
+    html.device-ipad .source-grid {
+      grid-template-columns: 1fr;
+    }
+    html.device-tablet .video-panel,
+    html.device-ipad .video-panel {
+      grid-template-columns: 1fr;
+      gap: 12px;
+      justify-content: stretch;
+    }
+    html.device-tablet .video-column,
+    html.device-ipad .video-column {
+      width: 100%;
+      min-width: 0;
+    }
+    html.device-tablet #localVideo.video-mode,
+    html.device-ipad #localVideo.video-mode {
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      aspect-ratio: 16 / 9;
+    }
+    html.device-tablet #youtubeContainer.video-mode,
+    html.device-ipad #youtubeContainer.video-mode {
+      min-height: 0;
+      max-height: none;
+      aspect-ratio: 16 / 9;
+    }
+    html.device-tablet .controls-side.active,
+    html.device-ipad .controls-side.active {
+      display: block;
+    }
+    html.device-tablet .controls-stack,
+    html.device-ipad .controls-stack {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    html.device-tablet .controls-stack > *,
+    html.device-ipad .controls-stack > * {
+      min-width: 0;
+    }
+    html.device-tablet .controls-under-video.active,
+    html.device-ipad .controls-under-video.active {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+    html.device-tablet .controls-under-video button,
+    html.device-tablet .controls-under-video select,
+    html.device-tablet .controls-under-video .time-box,
+    html.device-tablet .controls-under-video .control-group,
+    html.device-ipad .controls-under-video button,
+    html.device-ipad .controls-under-video select,
+    html.device-ipad .controls-under-video .time-box,
+    html.device-ipad .controls-under-video .control-group {
+      width: 100%;
+      min-width: 0;
+    }
+    html.device-tablet button,
+    html.device-tablet input[type="text"],
+    html.device-tablet input[type="file"],
+    html.device-tablet select,
+    html.device-tablet textarea,
+    html.device-ipad button,
+    html.device-ipad input[type="text"],
+    html.device-ipad input[type="file"],
+    html.device-ipad select,
+    html.device-ipad textarea {
+      font-size: 16px;
+    }
+    html.device-tablet button,
+    html.device-ipad button {
+      min-height: 44px;
+    }
+    html.device-tablet .help-btn,
+    html.device-ipad .help-btn {
+      min-height: 30px;
+      width: 34px;
+      height: 34px;
+    }
+    html.device-tablet .table-scroll-wrap,
+    html.device-ipad .table-scroll-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    html.device-tablet table,
+    html.device-ipad table {
+      min-width: 760px;
+    }
+    html.device-tablet .global-popup-box,
+    html.device-ipad .global-popup-box {
+      width: min(700px, calc(100vw - 24px));
+    }
+    html.device-tablet .help-popup-box,
+    html.device-ipad .help-popup-box {
+      width: min(560px, calc(100vw - 24px));
+    }
+
+
+    html.device-phone .app {
+      padding: 10px;
+    }
+    html.device-phone h1 {
+      font-size: 26px;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+    html.device-phone .intro {
+      font-size: 15px;
+      margin-bottom: 14px;
+    }
+    html.device-phone .layout {
+      display: block;
+    }
+    html.device-phone .progress-rail {
+      display: none;
+    }
+    html.device-phone .section {
+      margin-top: 12px;
+    }
+    html.device-phone .card-header {
+      padding: 12px 12px 0 12px;
+    }
+    html.device-phone .card-content {
+      padding: 0 12px 12px 12px;
+    }
+    html.device-phone .card-footer-help {
+      padding: 0 12px 12px 12px;
+    }
+    html.device-phone .section-heading {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    html.device-phone .metadata-grid,
+    html.device-phone .source-grid,
+    html.device-phone .video-panel {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    html.device-phone .video-panel {
+      justify-content: stretch;
+    }
+    html.device-phone .video-column,
+    html.device-phone .controls-side,
+    html.device-phone .video-shell,
+    html.device-phone #localVideo,
+    html.device-phone #youtubeContainer {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
+    html.device-phone #localVideo.video-mode,
+    html.device-phone #youtubeContainer.video-mode {
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      aspect-ratio: 16 / 9;
+    }
+    html.device-phone .controls-side.active {
+      display: block;
+      padding: 10px;
+    }
+    html.device-phone .controls-stack {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    html.device-phone .controls-stack > * {
+      min-width: 0;
+    }
+    html.device-phone .controls-under-video.active {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      align-items: stretch;
+    }
+    html.device-phone .controls-under-video button,
+    html.device-phone .controls-under-video select,
+    html.device-phone .controls-under-video .time-box,
+    html.device-phone .controls-under-video .control-group,
+    html.device-phone .controls-stack button,
+    html.device-phone .controls-stack select,
+    html.device-phone .controls-stack .time-box {
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    html.device-phone .top-actions,
+    html.device-phone .table-add-row-wrap {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    html.device-phone .table-add-row,
+    html.device-phone .top-actions button {
+      width: 100%;
+    }
+    html.device-phone .speaker-input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+    html.device-phone .table-scroll-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      max-height: 360px;
+    }
+    html.device-phone table {
+      min-width: 680px;
+    }
+    html.device-phone button,
+    html.device-phone input[type="text"],
+    html.device-phone input[type="file"],
+    html.device-phone select,
+    html.device-phone textarea {
+      font-size: 16px;
+    }
+    html.device-phone button {
+      min-height: 42px;
+    }
+    html.device-phone .help-btn {
+      min-height: 32px;
+      width: 32px;
+      height: 32px;
+    }
+    html.device-phone .global-popup-box {
+      width: calc(100vw - 16px);
+      max-width: calc(100vw - 16px);
+      padding: 18px 14px;
+    }
+    html.device-phone .help-popup-box {
+      width: calc(100vw - 16px);
+      max-width: calc(100vw - 16px);
+      padding: 16px 14px 14px 14px;
+    }
+    html.device-phone .popup-editor {
+      min-height: 170px;
+    }
+
+    @media (max-width: 1200px) {
+      .metadata-grid { grid-template-columns: 1fr 1fr; }
+      .source-grid { grid-template-columns: 1fr; }
+      .video-panel { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 40px minmax(0, 1fr); }
+      .rail-base, .rail-active { left: 18px; }
+      .rail-dot { left: 8px; }
+    }
+    @media (max-width: 700px) {
+      .metadata-grid { grid-template-columns: 1fr; }
+      .table-add-row-wrap { flex-direction: column; }
+      .controls-under-video.active { flex-direction: column; align-items: stretch; }
+      .controls-under-video button, .controls-under-video select, .controls-under-video .time-box, .controls-under-video .control-group { width: 100%; min-width: 0; }
+    }
+  </style>
+
+  <script>
+    (function () {
+      const ua = navigator.userAgent || '';
+      const platform = navigator.platform || '';
+      const maxTouch = navigator.maxTouchPoints || 0;
+      const isIPad = /iPad/i.test(ua) || (platform === 'MacIntel' && maxTouch > 1);
+      const isIPhone = /iPhone/i.test(ua);
+      const isAndroidTablet = /Android/i.test(ua) && !/Mobile/i.test(ua);
+      const isTabletWidth = Math.min(window.innerWidth, window.innerHeight) >= 700 && Math.max(window.innerWidth, window.innerHeight) <= 1400;
+      const isTouch = ('ontouchstart' in window) || maxTouch > 0;
+      const isTabletLike = isIPad || isAndroidTablet || (isTouch && isTabletWidth && !isIPhone);
+
+      document.documentElement.classList.add(isTouch ? 'device-touch' : 'device-no-touch');
+      if (isTabletLike) document.documentElement.classList.add('device-tablet');
+      if (isIPad) document.documentElement.classList.add('device-ipad');
+      if (isIPhone) document.documentElement.classList.add('device-phone');
+      if (!isIPhone && isTouch && Math.max(window.innerWidth, window.innerHeight) <= 900) {
+        document.documentElement.classList.add('device-phone');
+      }
+    })();
+  </script>
+
+</head>
+<body>
+  <div class="app">
+    <h1>Transkript-Editor</h1>
+    <p class="intro">Video laden oder YouTube-Link einfügen, fein navigieren und das Transkript Zeile für Zeile erfassen.</p>
+    <div class="layout">
+      <aside class="progress-rail" id="progressRail" aria-label="Fortschritt">
+        <div class="rail-base"></div>
+        <div class="rail-active" id="railActive"></div>
+        <button class="rail-dot" id="railDot1" type="button" aria-label="Schritt 1"></button>
+        <button class="rail-dot" id="railDot2" type="button" aria-label="Schritt 2"></button>
+        <button class="rail-dot" id="railDot3" type="button" aria-label="Schritt 3"></button>
+        <button class="rail-dot" id="railDot4" type="button" aria-label="Schritt 4"></button>
+        <button class="rail-dot" id="railDot5" type="button" aria-label="Schritt 5"></button>
+      </aside>
+
+      <main class="main-content" id="mainContent">
+        <section class="section card is-visible" id="step1">
+          <div class="card-header"><div class="section-heading">Schritt 1: Metadaten und Sprecher</div></div>
+          <div class="card-content">
+            <label>Metadaten</label>
+            <div class="metadata-grid">
+              <div><label for="metaSubject" style="font-weight:normal;">Unterrichtsfach</label><input id="metaSubject" type="text" placeholder="z. B. Deutsch" /></div>
+              <div><label for="metaClass" style="font-weight:normal;">Klasse</label><input id="metaClass" type="text" placeholder="z. B. 7a" /></div>
+              <div><label for="metaTopic" style="font-weight:normal;">Unterrichtsthema</label><input id="metaTopic" type="text" placeholder="z. B. Argumentieren im Unterrichtsgespräch" /></div>
+              <div><label for="metaTitle" style="font-weight:normal;">Videoname</label><input id="metaTitle" type="text" placeholder="z. B. Unterrichtsgespräch Klasse 7" /></div>
+              <div><label for="metaLength" style="font-weight:normal;">Länge des Ausschnitts</label><input id="metaLength" type="text" placeholder="z. B. 03:25" /></div>
+              <div><label for="metaSource" style="font-weight:normal;">Quelle</label><input id="metaSource" type="text" placeholder="z. B. Eigenes Video / YouTube-Link" /></div>
+              <div><label for="metaAuthor" style="font-weight:normal;">Transkribiert von</label><input id="metaAuthor" type="text" placeholder="Name" /></div>
+            </div>
+            <div style="margin-top: 18px;">
+              <label for="speakerInput">Sprecher hinzufügen</label>
+              <div class="speaker-input-row">
+                <input id="speakerInput" type="text" placeholder="z. B. Schüler 1" />
+                <button id="addSpeakerBtn" type="button">+</button>
+              </div>
+              <div id="speakerTags" class="speaker-tags"></div>
+            </div>
+          </div>
+          <div class="card-footer-help"><button type="button" class="help-btn" data-help="step1">?</button></div>
+        </section>
+
+        <section class="section card is-hidden is-collapsed" id="step2">
+          <div class="card-header"><div class="section-heading">Schritt 2: Video importieren</div></div>
+          <div class="card-content">
+            <div class="source-grid">
+              <div class="field-group">
+                <label for="videoInput">Lokale Videodatei</label>
+                <input id="videoInput" type="file" accept="video/*" />
+              </div>
+              <div class="field-group">
+                <label for="youtubeUrl">YouTube-Link</label>
+                <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
+              </div>
+              <div class="field-group">
+                <label style="visibility:hidden;">Aktion</label>
+                <button id="loadSourceBtn" type="button">Video laden</button>
+              </div>
+            </div>
+            <div id="sourceStatus" class="status">Noch keine Quelle geladen.</div>
+            <div class="video-panel">
+              <div class="video-column">
+                <div id="videoShell" class="video-shell">
+                  <video id="localVideo" controls></video>
+                  <div id="youtubeContainer"><div id="youtubePlayer"></div></div>
+                </div>
+                <div id="controlsUnderVideo" class="controls-under-video">
+                  <button id="toggleVideoBtnBottom" type="button">Video einblenden</button>
+                  <button id="playPauseBtnBottom" type="button">Play / Pause</button>
+                  <button id="backBtnBottom" type="button" class="secondary">Zurück</button>
+                  <button id="forwardBtnBottom" type="button" class="secondary">Vor</button>
+                  <button id="insertTimeBtnBottom" type="button">Zeit übernehmen</button>
+                  <div class="control-group"><label>Aktuelle Zeit</label><div class="time-box" id="timeDisplayBottom">00:00.0</div></div>
+                  <div class="control-group">
+                    <label for="skipSelectBottom">Sprungweite</label>
+                    <select id="skipSelectBottom">
+                      <option value="0.5">0,5 Sek</option><option value="1" selected>1 Sek</option><option value="2">2 Sek</option><option value="5">5 Sek</option>
+                    </select>
+                  </div>
+                  <div class="control-group">
+                    <label for="speedSelectBottom">Tempo</label>
+                    <select id="speedSelectBottom">
+                      <option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="1" selected>1.0x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2.0x</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div id="controlsCard" class="controls-side">
+                <div class="controls-stack">
+                  <button id="toggleVideoBtn" type="button">Video ausblenden</button>
+                  <button id="playPauseBtn" type="button">Play / Pause</button>
+                  <button id="backBtn" type="button" class="secondary">Zurück</button>
+                  <button id="forwardBtn" type="button" class="secondary">Vor</button>
+                  <button id="insertTimeBtn" type="button">Zeit übernehmen</button>
+                  <div class="control-group"><label>Aktuelle Zeit</label><div class="time-box" id="timeDisplay">00:00.0</div></div>
+                  <div class="control-group">
+                    <label for="skipSelect">Sprungweite</label>
+                    <select id="skipSelect">
+                      <option value="0.5">0,5 Sek</option><option value="1" selected>1 Sek</option><option value="2">2 Sek</option><option value="5">5 Sek</option>
+                    </select>
+                  </div>
+                  <div class="control-group">
+                    <label for="speedSelect">Tempo</label>
+                    <select id="speedSelect">
+                      <option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="1" selected>1.0x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2.0x</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer-help"><button type="button" class="help-btn" data-help="step2">?</button></div>
+        </section>
+
+        <section class="section card is-hidden is-collapsed" id="step3">
+          <div class="card-header"><div class="section-heading">Schritt 3: Transkript anlegen</div></div>
+          <div class="card-content">
+            <div class="table-scroll-wrap" id="tableScrollWrap">
+              <table>
+                <thead>
+                  <tr><th style="width: 120px;">Zeit</th><th style="width: 190px;">Sprecher</th><th>Äußerung</th><th style="width: 160px;">Aktionen</th></tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+            <div class="table-add-row-wrap">
+              <button id="addSpeakerChangeBtn" type="button" class="table-add-row">+ Sprecherwechsel</button>
+              <button id="addSameSpeakerBtn" type="button" class="table-add-row">+ Gleicher Sprecher</button>
+              <button id="addPauseBtn" type="button" class="table-add-row">+ Pause</button>
+            </div>
+          </div>
+          <div class="card-footer-help"><button type="button" class="help-btn" data-help="step3">?</button></div>
+        </section>
+
+        <section class="section card is-hidden is-collapsed" id="step4">
+          <div class="card-header"><div class="section-heading">Schritt 4: Zwischenspeichern</div></div>
+          <div class="card-content">
+            <div class="top-actions">
+              <button id="exportTxtBtn" type="button">TXT speichern</button>
+              <button id="exportCsvBtn" type="button" class="secondary">CSV speichern</button>
+              <button id="copyTranscriptBtn" type="button" class="secondary">In Zwischenablage kopieren</button>
+            </div>
+          </div>
+          <div class="card-footer-help"><button type="button" class="help-btn" data-help="step4">?</button></div>
+        </section>
+
+        <section class="section card is-hidden is-collapsed" id="step5">
+          <div class="card-header"><div class="section-heading">Schritt 5: Mit ChatGPT analysieren</div></div>
+          <div class="card-content">
+            <div class="top-actions">
+              <button id="analyzeChatgptBtn" type="button">Fertiges Transkript mit ChatGPT analysieren lassen</button>
+            </div>
+          </div>
+          <div class="card-footer-help"><button type="button" class="help-btn" data-help="step5">?</button></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="globalPopup" class="global-popup hidden">
+    <div class="global-popup-box">
+      <h2 class="popup-title">Transkript wurde kopiert und kann jetzt in den Chatbereich von ChatGPT eingefügt werden.</h2>
+      <div class="popup-hint">Klicke in den Chatbereich von ChatGPT und füge den Inhalt ein mit <strong>STRG + V</strong> oder per <strong>Rechtsklick → Einfügen</strong>.</div>
+      <div>
+        <div class="popup-editor-label">Analyseauftrag</div>
+        <textarea id="popupPromptEditor" class="popup-editor"></textarea>
+      </div>
+      <div class="popup-actions">
+        <button id="cancelPopupBtn" type="button" class="secondary">Abbrechen</button>
+        <button id="continueChatgptBtn" type="button">Weiter zu ChatGPT</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="helpPopup" class="help-popup hidden">
+    <div class="help-popup-box">
+      <h3 id="helpPopupTitle" class="help-popup-title">Hilfe</h3>
+      <div id="helpPopupText" class="help-popup-text"></div>
+      <div class="help-popup-actions"><button id="closeHelpPopupBtn" type="button">Schließen</button></div>
+    </div>
+  </div>
+
+  <script>
+    const dom = {
+      videoInput: document.getElementById('videoInput'),
+      youtubeUrl: document.getElementById('youtubeUrl'),
+      loadSourceBtn: document.getElementById('loadSourceBtn'),
+      sourceStatus: document.getElementById('sourceStatus'),
+      localVideo: document.getElementById('localVideo'),
+      youtubeContainer: document.getElementById('youtubeContainer'),
+      videoShell: document.getElementById('videoShell'),
+      controlsCard: document.getElementById('controlsCard'),
+      controlsUnderVideo: document.getElementById('controlsUnderVideo'),
+      tableScrollWrap: document.getElementById('tableScrollWrap'),
+      toggleVideoBtn: document.getElementById('toggleVideoBtn'),
+      toggleVideoBtnBottom: document.getElementById('toggleVideoBtnBottom'),
+      playPauseBtn: document.getElementById('playPauseBtn'),
+      backBtn: document.getElementById('backBtn'),
+      forwardBtn: document.getElementById('forwardBtn'),
+      insertTimeBtn: document.getElementById('insertTimeBtn'),
+      skipSelect: document.getElementById('skipSelect'),
+      speedSelect: document.getElementById('speedSelect'),
+      timeDisplay: document.getElementById('timeDisplay'),
+      playPauseBtnBottom: document.getElementById('playPauseBtnBottom'),
+      backBtnBottom: document.getElementById('backBtnBottom'),
+      forwardBtnBottom: document.getElementById('forwardBtnBottom'),
+      insertTimeBtnBottom: document.getElementById('insertTimeBtnBottom'),
+      skipSelectBottom: document.getElementById('skipSelectBottom'),
+      speedSelectBottom: document.getElementById('speedSelectBottom'),
+      timeDisplayBottom: document.getElementById('timeDisplayBottom'),
+      metaSubject: document.getElementById('metaSubject'),
+      metaClass: document.getElementById('metaClass'),
+      metaTopic: document.getElementById('metaTopic'),
+      metaTitle: document.getElementById('metaTitle'),
+      metaLength: document.getElementById('metaLength'),
+      metaSource: document.getElementById('metaSource'),
+      metaAuthor: document.getElementById('metaAuthor'),
+      speakerInput: document.getElementById('speakerInput'),
+      addSpeakerBtn: document.getElementById('addSpeakerBtn'),
+      speakerTags: document.getElementById('speakerTags'),
+      exportTxtBtn: document.getElementById('exportTxtBtn'),
+      exportCsvBtn: document.getElementById('exportCsvBtn'),
+      copyTranscriptBtn: document.getElementById('copyTranscriptBtn'),
+      analyzeChatgptBtn: document.getElementById('analyzeChatgptBtn'),
+      addSameSpeakerBtn: document.getElementById('addSameSpeakerBtn'),
+      addSpeakerChangeBtn: document.getElementById('addSpeakerChangeBtn'),
+      addPauseBtn: document.getElementById('addPauseBtn'),
+      tableBody: document.getElementById('tableBody'),
+      globalPopup: document.getElementById('globalPopup'),
+      globalPopupBox: document.querySelector('.global-popup-box'),
+      popupPromptEditor: document.getElementById('popupPromptEditor'),
+      cancelPopupBtn: document.getElementById('cancelPopupBtn'),
+      continueChatgptBtn: document.getElementById('continueChatgptBtn'),
+      helpPopup: document.getElementById('helpPopup'),
+      helpPopupBox: document.querySelector('.help-popup-box'),
+      helpPopupTitle: document.getElementById('helpPopupTitle'),
+      helpPopupText: document.getElementById('helpPopupText'),
+      closeHelpPopupBtn: document.getElementById('closeHelpPopupBtn'),
+      mainContent: document.getElementById('mainContent'),
+      progressRail: document.getElementById('progressRail'),
+      railActive: document.getElementById('railActive'),
+      steps: {
+        1: document.getElementById('step1'),
+        2: document.getElementById('step2'),
+        3: document.getElementById('step3'),
+        4: document.getElementById('step4'),
+        5: document.getElementById('step5')
+      },
+      railDots: {
+        1: document.getElementById('railDot1'),
+        2: document.getElementById('railDot2'),
+        3: document.getElementById('railDot3'),
+        4: document.getElementById('railDot4'),
+        5: document.getElementById('railDot5')
+      }
+    };
+
+    const state = {
+      speakerPresets: [],
+      currentSource: null,
+      youtubePlayer: null,
+      youtubeApiReady: false,
+      youtubeTimeInterval: null,
+      videoVisible: true,
+      resizeObserver: null,
+      mutationObserver: null
+    };
+
+    const helpTexts = {
+      step1: { title: 'Hilfe zu Schritt 1', text: `Hier trägst du die wichtigsten Rahmendaten ein.
+
+Unterrichtsfach, Klasse und Unterrichtsthema geben den Kontext vor.
+Mit „Sprecher hinzufügen“ legst du alle Personen an, die später im Transkript ausgewählt werden können.
+
+Tipp:
+Lege zuerst alle Sprecher an, bevor du mit dem Transkript beginnst.` },
+      step2: { title: 'Hilfe zu Schritt 2', text: `Hier lädst du das Material, mit dem du arbeiten willst.
+
+Du kannst entweder eine lokale Videodatei wählen oder einen YouTube-Link einfügen.
+Danach kannst du das Video abspielen, pausieren, vor- und zurückspringen und die aktuelle Zeit übernehmen.
+
+Tipp:
+Nutze eine kleine Sprungweite, wenn du sehr genau transkribieren möchtest.` },
+      step3: { title: 'Hilfe zu Schritt 3', text: `Hier erstellst du das eigentliche Transkript.
+
+Jede Zeile enthält Zeit, Sprecher und Äußerung.
+„Sprecherwechsel“ erstellt eine neue Zeile mit neuem Sprecher.
+„Gleicher Sprecher“ erstellt eine Fortsetzung ohne erneute Sprecherangabe.
+„Pause“ erstellt eine Pausenzeile.
+
+Tipp:
+Übernimm zuerst die Zeit und trage dann Sprecher und Äußerung ein.` },
+      step4: { title: 'Hilfe zu Schritt 4', text: `Hier sicherst du dein bisheriges Ergebnis.
+
+TXT speichern:
+für eine gut lesbare Textversion.
+
+CSV speichern:
+für die Weiterarbeit in Excel oder Tabellenprogrammen.
+
+In Zwischenablage kopieren:
+um das Transkript schnell an anderer Stelle einzufügen.` },
+      step5: { title: 'Hilfe zu Schritt 5', text: `Hier kannst du das fertige Transkript für eine Analyse mit ChatGPT vorbereiten.
+
+Beim Klick wird ein Popup geöffnet.
+Dort kannst du den Analyseauftrag noch anpassen.
+Danach wird der Text kopiert und ChatGPT in einem neuen Tab geöffnet.
+
+Tipp:
+Prüfe den Analyseauftrag kurz, bevor du weitergehst.` }
+    };
+
+    const metaInputs = [dom.metaSubject, dom.metaClass, dom.metaTopic, dom.metaTitle, dom.metaLength, dom.metaSource, dom.metaAuthor];
+
+    function escapeHtml(text) {
+      return String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+    }
+
+    function escapeCsv(value) {
+      const text = String(value ?? '');
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+
+    function formatTime(seconds) {
+      const s = Math.max(0, Number(seconds) || 0);
+      const mins = Math.floor(s / 60);
+      const secs = Math.floor(s % 60);
+      const tenths = Math.floor((s - Math.floor(s)) * 10);
+      return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0') + '.' + tenths;
+    }
+
+    function parseTimeToSeconds(value) {
+      if (!value) return null;
+      const match = String(value).trim().match(/^(\d+):(\d{2})(?:\.(\d))?$/);
+      if (!match) return null;
+      return Number(match[1]) * 60 + Number(match[2]) + (match[3] ? Number(match[3]) / 10 : 0);
+    }
+
+    function formatDuration(seconds) {
+      if (seconds == null || !isFinite(seconds) || seconds < 0) return '';
+      return seconds.toFixed(1) + 's';
+    }
+
+    function autoGrowTextarea(el) {
+      if (!el) return;
+      el.style.height = '38px';
+      el.style.height = Math.max(38, el.scrollHeight) + 'px';
+      requestRailSync();
+    }
+
+    function scrollTableToBottom() {
+      dom.tableScrollWrap.scrollTop = dom.tableScrollWrap.scrollHeight;
+    }
+
+    function syncDisplays() {
+      dom.timeDisplayBottom.textContent = dom.timeDisplay.textContent;
+      dom.skipSelectBottom.value = dom.skipSelect.value;
+      dom.speedSelectBottom.value = dom.speedSelect.value;
+    }
+
+    function getMetadata() {
+      return {
+        subject: dom.metaSubject.value.trim(),
+        className: dom.metaClass.value.trim(),
+        topic: dom.metaTopic.value.trim(),
+        title: dom.metaTitle.value.trim(),
+        length: dom.metaLength.value.trim(),
+        source: dom.metaSource.value.trim(),
+        author: dom.metaAuthor.value.trim()
+      };
+    }
+
+    function buildMetadataTextFull() {
+      const meta = getMetadata();
+      return [
+        `Unterrichtsfach: ${meta.subject}`,
+        `Klasse: ${meta.className}`,
+        `Unterrichtsthema: ${meta.topic}`,
+        `Videoname: ${meta.title}`,
+        `Länge des Ausschnitts: ${meta.length}`,
+        `Quelle: ${meta.source}`,
+        `Transkribiert von: ${meta.author}`,
+        `Sprecher: ${state.speakerPresets.join(', ')}`
+      ].join('\n') + '\n\n';
+    }
+
+    function buildMetadataTextForChatgpt() {
+      const meta = getMetadata();
+      return [
+        `Unterrichtsfach: ${meta.subject}`,
+        `Klasse: ${meta.className}`,
+        `Unterrichtsthema: ${meta.topic}`,
+        `Sprecher: ${state.speakerPresets.join(', ')}`
+      ].join('\n') + '\n\n';
+    }
+
+    function wrapTextByWords(text, maxLen) {
+      const input = String(text || '').trim();
+      if (!input) return [''];
+      const words = input.split(/\s+/);
+      const lines = [];
+      let current = '';
+      for (const word of words) {
+        if (!current) current = word;
+        else if ((current + ' ' + word).length <= maxLen) current += ' ' + word;
+        else { lines.push(current); current = word; }
+      }
+      if (current) lines.push(current);
+      return lines;
+    }
+
+    function buildTranscriptTxt(rows) {
+      const gap = '    ';
+      const timeWidth = 10;
+      const speakerValues = rows.map(r => r.type === 'pause' ? 'Pause' : (r.speaker || ''));
+      const speakerWidth = Math.max(8, ...speakerValues.map(v => String(v).length));
+      const maxTextWidth = 70;
+
+      return rows.map(r => {
+        const timePart = String(`[${r.time}]`).padEnd(timeWidth, ' ');
+        const visibleSpeaker = r.type === 'pause' ? 'Pause' : (r.speaker || '').trim();
+        const speakerPart = String(visibleSpeaker).padEnd(speakerWidth, ' ');
+        const prefix = timePart + gap + speakerPart + gap;
+        return wrapTextByWords(r.utterance || '', maxTextWidth).map((line, i) => i === 0 ? prefix + line : ' '.repeat(prefix.length) + line).join('\n');
+      }).join('\n');
+    }
+
+    function buildDefaultAnalysisPrompt() {
+      return [
+        'Bitte analysiere das folgende Transkript im Hinblick auf die Gesprächsführung.',
+        'Beziehe dich dabei insbesondere auf:',
+        '- Struktur und Klarheit der Gesprächsführung',
+        '- Angemessenheit von Fragen, Reaktionen und Gesprächsimpulsen',
+        '- wertschätzende und professionelle Kommunikation',
+        '- Möglichkeiten zur Verbesserung',
+        '',
+        'Bitte formuliere die Analyse auf Deutsch, sachlich und konkret.'
+      ].join('\n');
+    }
+
+    function buildClipboardTextWithPrompt(customPrompt) {
+      const promptText = (customPrompt || '').trim();
+      return promptText + '\n\nTRANSKRIPT:\n\n' + buildMetadataTextForChatgpt() + buildTranscriptTxt(getRowsData());
+    }
+
+    async function copyTextToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        const helper = document.createElement('textarea');
+        helper.value = text;
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        helper.style.left = '-9999px';
+        document.body.appendChild(helper);
+        helper.focus();
+        helper.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch { ok = false; }
+        document.body.removeChild(helper);
+        return ok;
+      }
+    }
+
+    function downloadFile(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function getRowsData() {
+      return Array.from(dom.tableBody.querySelectorAll('tr')).map(row => {
+        if (row.classList.contains('pause-row')) {
+          return {
+            type: 'pause',
+            time: row.querySelector('.time-input').value.trim(),
+            speaker: '',
+            utterance: row.querySelector('.pause-display')?.textContent?.trim() || ''
+          };
+        }
+        const select = row.querySelector('.speaker-select');
+        return {
+          type: 'speech',
+          time: row.querySelector('.time-input').value.trim(),
+          speaker: select ? select.value.trim() : '',
+          utterance: row.querySelector('.utterance-input').value.trim()
+        };
+      });
+    }
+
+    function exportTxt() {
+      downloadFile(buildMetadataTextFull() + buildTranscriptTxt(getRowsData()), 'transkript.txt', 'text/plain;charset=utf-8');
+      markStep4Completed();
+    }
+
+    function exportCsv() {
+      const rows = getRowsData();
+      const meta = getMetadata();
+      const lines = [
+        ['Metadaten', '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['', '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Unterrichtsfach: ' + meta.subject, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Klasse: ' + meta.className, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Unterrichtsthema: ' + meta.topic, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Videoname: ' + meta.title, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Länge des Ausschnitts: ' + meta.length, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Quelle: ' + meta.source, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Transkribiert von: ' + meta.author, '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Sprecher: ' + state.speakerPresets.join(', '), '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['', '', '', '', '', ''].map(escapeCsv).join(';'),
+        ['Zeit', 'Sprecher', 'Äußerung'].map(escapeCsv).join(';'),
+        ...rows.map(r => [r.time, r.type === 'pause' ? 'Pause' : r.speaker, r.utterance].map(escapeCsv).join(';'))
+      ];
+      downloadFile('\uFEFF' + lines.join('\n'), 'transkript.csv', 'text/csv;charset=utf-8');
+      markStep4Completed();
+    }
+
+    function positionPopupAtButton(popupBox, buttonEl) {
+      const rect = buttonEl.getBoundingClientRect();
+      popupBox.style.visibility = 'hidden';
+      popupBox.style.top = '12px';
+      popupBox.style.left = '50%';
+      popupBox.style.transform = 'translateX(-50%)';
+      requestAnimationFrame(() => {
+        const boxHeight = popupBox.offsetHeight;
+        const margin = 12;
+        let top = rect.bottom - boxHeight;
+        if (top < margin) top = margin;
+        if (top + boxHeight > window.innerHeight - margin) {
+          top = Math.max(margin, window.innerHeight - boxHeight - margin);
+        }
+        popupBox.style.top = `${top}px`;
+        popupBox.style.visibility = 'visible';
+      });
+    }
+
+    function openAnalysisPopup(prefilledPrompt, triggerBtn) {
+      dom.popupPromptEditor.value = prefilledPrompt;
+      dom.globalPopup.classList.remove('hidden');
+      positionPopupAtButton(dom.globalPopupBox, triggerBtn);
+    }
+
+    function closeAnalysisPopup() { dom.globalPopup.classList.add('hidden'); }
+
+    function openHelpPopup(stepKey, triggerBtn) {
+      const help = helpTexts[stepKey];
+      if (!help) return;
+      dom.helpPopupTitle.textContent = help.title;
+      dom.helpPopupText.textContent = help.text;
+      dom.helpPopup.classList.remove('hidden');
+      positionPopupAtButton(dom.helpPopupBox, triggerBtn);
+    }
+
+    function closeHelpPopup() { dom.helpPopup.classList.add('hidden'); }
+
+    function isStep1Complete() {
+      return dom.metaSubject.value.trim() !== '' &&
+        dom.metaClass.value.trim() !== '' &&
+        dom.metaTopic.value.trim() !== '' &&
+        state.speakerPresets.length > 0;
+    }
+
+    function isStep2Complete() { return state.currentSource !== null; }
+
+    function hasCompleteTranscriptRow() {
+      return Array.from(dom.tableBody.querySelectorAll('tr')).some(row => {
+        if (row.classList.contains('pause-row')) {
+          return (row.querySelector('.time-input')?.value.trim() || '') !== '' &&
+                 (row.querySelector('.pause-display')?.textContent.trim() || '') !== '';
+        }
+        const time = row.querySelector('.time-input')?.value.trim() || '';
+        const utterance = row.querySelector('.utterance-input')?.value.trim() || '';
+        const select = row.querySelector('.speaker-select');
+        const speakerOk = row.classList.contains('continuation-row') ? true : !!(select && select.value.trim() !== '');
+        return time !== '' && utterance !== '' && speakerOk;
+      });
+    }
+
+    function isStep4Complete() { return dom.steps[4].dataset.completed === 'true'; }
+
+    function markStep4Completed() {
+      dom.steps[4].dataset.completed = 'true';
+      updateWorkflow();
+    }
+
+    function getWorkflowStage() {
+      if (!isStep1Complete()) return 1;
+      if (!isStep2Complete()) return 2;
+      if (!hasCompleteTranscriptRow()) return 3;
+      if (!isStep4Complete()) return 4;
+      return 5;
+    }
+
+    function getVisibleStepCount() { return getWorkflowStage(); }
+
+    function getFocusSteps() {
+      const stage = getWorkflowStage();
+      return stage === 4 ? [3, 4] : [stage];
+    }
+
+    function showCard(card) {
+      if (!card.classList.contains('is-visible')) {
+        card.classList.remove('is-hidden');
+        requestAnimationFrame(() => card.classList.add('is-visible'));
+      }
+      card.classList.remove('is-collapsed');
+    }
+
+    function hideCard(card) {
+      card.classList.add('is-collapsed');
+      card.classList.remove('is-visible');
+      card.classList.add('is-hidden');
+      card.classList.remove('is-focus');
+    }
+
+    function updateCardFocus() {
+      Object.values(dom.steps).forEach(card => card.classList.remove('is-focus'));
+      getFocusSteps().forEach(n => dom.steps[n]?.classList.add('is-focus'));
+    }
+
+    function getDotCenterY(stepNumber) {
+      const dot = dom.railDots[stepNumber];
+      return dot.offsetTop + (dot.offsetHeight / 2);
+    }
+
+    function updateRailLineVisuals() {
+      const visibleStepCount = getVisibleStepCount();
+      const activeNumber = Math.min(getWorkflowStage(), visibleStepCount);
+      dom.railActive.style.top = '0px';
+      dom.railActive.style.height = Math.max(0, getDotCenterY(activeNumber)) + 'px';
+
+      Object.values(dom.railDots).forEach(dot => dot.classList.remove('is-active', 'is-done'));
+      for (let i = 1; i <= activeNumber; i++) {
+        if (i <= visibleStepCount) dom.railDots[i].classList.add('is-done');
+      }
+      dom.railDots[activeNumber]?.classList.add('is-active');
+    }
+
+    function syncRailPositions() {
+      dom.progressRail.style.height = dom.mainContent.offsetHeight + 'px';
+      const railRect = dom.progressRail.getBoundingClientRect();
+      Object.values(dom.steps).forEach((section, index) => {
+        const sectionRect = section.getBoundingClientRect();
+        dom.railDots[index + 1].style.top = ((sectionRect.top - railRect.top) + (sectionRect.height / 2)) + 'px';
+      });
+      updateRailLineVisuals();
+    }
+
+    function requestRailSync() {
+      requestAnimationFrame(() => requestAnimationFrame(syncRailPositions));
+    }
+
+    function updateWorkflow() {
+      const visibleSteps = getVisibleStepCount();
+      Object.entries(dom.steps).forEach(([num, card]) => Number(num) <= visibleSteps ? showCard(card) : hideCard(card));
+      Object.entries(dom.railDots).forEach(([num, dot]) => dot.classList.toggle('is-visible', Number(num) <= visibleSteps));
+      updateCardFocus();
+      requestRailSync();
+    }
+
+    function updateStepStates() { updateWorkflow(); }
+
+    function scrollToStep(stepNumber) {
+      dom.steps[stepNumber]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function setSourceStatus(text) { dom.sourceStatus.textContent = text; }
+
+    function getCurrentTime() {
+      if (state.currentSource === 'local') return dom.localVideo.currentTime || 0;
+      if (state.currentSource === 'youtube' && state.youtubePlayer?.getCurrentTime) return state.youtubePlayer.getCurrentTime() || 0;
+      return 0;
+    }
+
+    function getSkipAmount() { return Number(dom.skipSelect.value) || 1; }
+
+    function setCurrentTime(seconds) {
+      const value = Math.max(0, seconds || 0);
+      if (state.currentSource === 'local') dom.localVideo.currentTime = value;
+      else if (state.currentSource === 'youtube' && state.youtubePlayer?.seekTo) state.youtubePlayer.seekTo(value, true);
+      updateTimeDisplay();
+    }
+
+    function togglePlayPause() {
+      if (state.currentSource === 'local') {
+        dom.localVideo.paused ? dom.localVideo.play() : dom.localVideo.pause();
+      } else if (state.currentSource === 'youtube' && state.youtubePlayer) {
+        state.youtubePlayer.getPlayerState() === 1 ? state.youtubePlayer.pauseVideo() : state.youtubePlayer.playVideo();
+      }
+    }
+
+    function stepBy(delta) { setCurrentTime(getCurrentTime() + delta); }
+
+    function setPlaybackRate(rate) {
+      if (state.currentSource === 'local') dom.localVideo.playbackRate = rate;
+      else if (state.currentSource === 'youtube' && state.youtubePlayer?.setPlaybackRate) state.youtubePlayer.setPlaybackRate(rate);
+    }
+
+    function updateTimeDisplay() {
+      const t = formatTime(getCurrentTime());
+      dom.timeDisplay.textContent = t;
+      dom.timeDisplayBottom.textContent = t;
+    }
+
+    function updateControlLayout() {
+      if (!state.currentSource) {
+        dom.controlsCard.classList.remove('active');
+        dom.controlsUnderVideo.classList.remove('active');
+        return;
+      }
+      if (state.currentSource === 'local' && !state.videoVisible) {
+        dom.controlsCard.classList.remove('active');
+        dom.controlsUnderVideo.classList.add('active');
+      } else {
+        dom.controlsCard.classList.add('active');
+        dom.controlsUnderVideo.classList.remove('active');
+      }
+    }
+
+    function updateVideoVisibility() {
+      if (!state.currentSource) {
+        dom.videoShell.classList.remove('active');
+        dom.localVideo.classList.remove('active', 'video-mode', 'audio-only-local');
+        dom.youtubeContainer.classList.remove('active', 'video-mode');
+        dom.controlsCard.classList.remove('active');
+        dom.controlsUnderVideo.classList.remove('active');
+        requestRailSync();
+        return;
+      }
+
+      dom.videoShell.classList.add('active');
+
+      if (state.currentSource === 'local') {
+        dom.youtubeContainer.classList.remove('active', 'video-mode');
+        dom.localVideo.classList.add('active');
+        if (state.videoVisible) {
+          dom.localVideo.classList.add('video-mode');
+          dom.localVideo.classList.remove('audio-only-local');
+          dom.toggleVideoBtn.textContent = 'Video ausblenden';
+          dom.toggleVideoBtnBottom.textContent = 'Video ausblenden';
+        } else {
+          dom.localVideo.classList.remove('video-mode');
+          dom.localVideo.classList.add('audio-only-local');
+          dom.toggleVideoBtn.textContent = 'Video einblenden';
+          dom.toggleVideoBtnBottom.textContent = 'Video einblenden';
+          syncDisplays();
+        }
+      } else {
+        dom.localVideo.classList.remove('active', 'video-mode', 'audio-only-local');
+        if (state.videoVisible) {
+          dom.youtubeContainer.classList.add('active', 'video-mode');
+          dom.toggleVideoBtn.textContent = 'Video ausblenden';
+          dom.toggleVideoBtnBottom.textContent = 'Video ausblenden';
+        } else {
+          dom.youtubeContainer.classList.remove('video-mode', 'active');
+          dom.toggleVideoBtn.textContent = 'Video einblenden';
+          dom.toggleVideoBtnBottom.textContent = 'Video einblenden';
+          syncDisplays();
+        }
+      }
+
+      updateControlLayout();
+      requestRailSync();
+    }
+
+    function extractYoutubeId(url) {
+      try {
+        const parsed = new URL(url);
+        if (parsed.hostname.includes('youtu.be')) return parsed.pathname.slice(1);
+        if (parsed.hostname.includes('youtube.com')) return parsed.searchParams.get('v');
+      } catch {}
+      return null;
+    }
+
+    function loadYoutubeApi() {
+      return new Promise((resolve) => {
+        if (state.youtubeApiReady && window.YT?.Player) {
+          resolve();
+          return;
+        }
+        window.onYouTubeIframeAPIReady = () => { state.youtubeApiReady = true; resolve(); };
+        if (!document.querySelector('script[data-youtube-api="1"]')) {
+          const script = document.createElement('script');
+          script.src = 'https://www.youtube.com/iframe_api';
+          script.dataset.youtubeApi = '1';
+          document.head.appendChild(script);
+        }
+      });
+    }
+
+    function startYoutubeTimePolling() {
+      stopYoutubeTimePolling();
+      state.youtubeTimeInterval = setInterval(updateTimeDisplay, 200);
+    }
+
+    function stopYoutubeTimePolling() {
+      if (state.youtubeTimeInterval) {
+        clearInterval(state.youtubeTimeInterval);
+        state.youtubeTimeInterval = null;
+      }
+    }
+
+    async function loadYoutubeVideo(url) {
+      const id = extractYoutubeId(url);
+      if (!id) {
+        setSourceStatus('Ungültiger YouTube-Link.');
+        return;
+      }
+
+      await loadYoutubeApi();
+
+      if (state.youtubePlayer?.loadVideoById) {
+        state.youtubePlayer.loadVideoById(id);
+      } else {
+        state.youtubePlayer = new YT.Player('youtubePlayer', {
+          videoId: id,
+          playerVars: { rel: 0, modestbranding: 1 },
+          events: {
+            onReady: () => {
+              setPlaybackRate(Number(dom.speedSelect.value));
+              updateTimeDisplay();
+              requestRailSync();
+            }
+          }
+        });
+      }
+
+      state.currentSource = 'youtube';
+      state.videoVisible = true;
+      updateVideoVisibility();
+      setSourceStatus('YouTube-Video geladen.');
+      if (!dom.metaSource.value.trim()) dom.metaSource.value = url;
+      startYoutubeTimePolling();
+      updateStepStates();
+    }
+
+    function loadSelectedSource() {
+      const file = dom.videoInput.files?.[0];
+      const url = dom.youtubeUrl.value.trim();
+
+      if (file) {
+        const objectUrl = URL.createObjectURL(file);
+        dom.localVideo.src = objectUrl;
+        dom.localVideo.load();
+        stopYoutubeTimePolling();
+        state.currentSource = 'local';
+        state.videoVisible = true;
+        updateVideoVisibility();
+        setPlaybackRate(Number(dom.speedSelect.value));
+        setSourceStatus(`Lokales Video geladen: ${file.name}`);
+        if (!dom.metaTitle.value.trim()) dom.metaTitle.value = file.name;
+        if (!dom.metaSource.value.trim()) dom.metaSource.value = 'Lokale Videodatei';
+        updateStepStates();
+        return;
+      }
+
+      if (url) return loadYoutubeVideo(url);
+      setSourceStatus('Bitte entweder eine lokale Datei auswählen oder einen YouTube-Link eingeben.');
+    }
+
+    function buildSpeakerOptions(selected = '') {
+      return ['<option value="">Bitte wählen</option>']
+        .concat(state.speakerPresets.map(name => {
+          const isSelected = name === selected ? 'selected' : '';
+          return `<option value="${escapeHtml(name)}" ${isSelected}>${escapeHtml(name)}</option>`;
+        }))
+        .join('');
+    }
+
+    function refreshAllSpeakerDropdowns() {
+      dom.tableBody.querySelectorAll('.speaker-select').forEach(select => {
+        const currentValue = select.value;
+        select.innerHTML = buildSpeakerOptions(currentValue);
+        if (state.speakerPresets.includes(currentValue)) select.value = currentValue;
+      });
+    }
+
+    function renderSpeakerTags() {
+      dom.speakerTags.innerHTML = '';
+      state.speakerPresets.forEach((speaker, index) => {
+        const tag = document.createElement('div');
+        tag.className = 'speaker-tag';
+        tag.innerHTML = `<span>${escapeHtml(speaker)}</span><button type="button" class="speaker-remove" data-index="${index}" aria-label="Sprecher entfernen">×</button>`;
+        dom.speakerTags.appendChild(tag);
+      });
+
+      dom.speakerTags.querySelectorAll('.speaker-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.speakerPresets.splice(Number(btn.dataset.index), 1);
+          renderSpeakerTags();
+          refreshAllSpeakerDropdowns();
+          updateStepStates();
+        });
+      });
+
+      requestRailSync();
+    }
+
+    function addSpeaker() {
+      const value = dom.speakerInput.value.trim();
+      if (!value || state.speakerPresets.includes(value)) {
+        dom.speakerInput.value = '';
+        return;
+      }
+      state.speakerPresets.push(value);
+      dom.speakerInput.value = '';
+      renderSpeakerTags();
+      refreshAllSpeakerDropdowns();
+      updateStepStates();
+    }
+
+    function repairSpeakerBorders() {
+      const rows = Array.from(dom.tableBody.querySelectorAll('tr'));
+      rows.forEach((row, index) => {
+        const speakerCell = row.children[1];
+        if (!speakerCell) return;
+        speakerCell.style.borderBottom = '';
+        speakerCell.classList.remove('speaker-continuation');
+        const prev = rows[index - 1];
+        if (row.classList.contains('continuation-row') && prev && !prev.classList.contains('pause-row')) {
+          speakerCell.classList.add('speaker-continuation');
+          prev.children[1].style.borderBottom = 'none';
+        }
+      });
+    }
+
+    function updatePauseDurations() {
+      const rows = Array.from(dom.tableBody.querySelectorAll('tr'));
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row.classList.contains('pause-row')) continue;
+        const start = parseTimeToSeconds(row.querySelector('.time-input').value.trim());
+        const pauseDisplay = row.querySelector('.pause-display');
+        if (!pauseDisplay || start == null) { pauseDisplay.textContent = ''; continue; }
+
+        let nextTime = null;
+        for (let j = i + 1; j < rows.length; j++) {
+          const nextRowTime = parseTimeToSeconds(rows[j].querySelector('.time-input').value.trim());
+          if (nextRowTime != null) { nextTime = nextRowTime; break; }
+        }
+        pauseDisplay.textContent = (nextTime == null || nextTime < start) ? '' : formatDuration(nextTime - start);
+      }
+    }
+
+    function attachTimeListeners(row) {
+      const timeInput = row.querySelector('.time-input');
+      if (!timeInput) return;
+      ['input', 'change'].forEach(evt => timeInput.addEventListener(evt, () => {
+        updatePauseDurations();
+        requestRailSync();
+        updateStepStates();
+      }));
+    }
+
+    function bindRowCommonEvents(row) {
+      row.querySelector('.use-time-btn').addEventListener('click', () => {
+        row.querySelector('.time-input').value = formatTime(getCurrentTime());
+        updatePauseDurations();
+        requestRailSync();
+        updateStepStates();
+      });
+
+      row.querySelector('.delete-row-btn').addEventListener('click', () => {
+        row.remove();
+        repairSpeakerBorders();
+        updatePauseDurations();
+        updateStepStates();
+      });
+
+      attachTimeListeners(row);
+    }
+
+    function appendRow(row) {
+      dom.tableBody.appendChild(row);
+      repairSpeakerBorders();
+      updatePauseDurations();
+      scrollTableToBottom();
+      updateStepStates();
+      return row;
+    }
+
+    function createStandardRow(time = '', speaker = '', utterance = '', blankSpeaker = false) {
+      const row = document.createElement('tr');
+      const speakerCellContent = blankSpeaker ? '<div class="speaker-blank">&nbsp;</div>' : `<select class="speaker-select">${buildSpeakerOptions(speaker)}</select>`;
+      row.innerHTML = `
+        <td><input type="text" class="time-input" value="${escapeHtml(time)}"></td>
+        <td>${speakerCellContent}</td>
+        <td><textarea class="utterance-input" placeholder="Äußerung eingeben ...">${escapeHtml(utterance)}</textarea></td>
+        <td><div class="row-actions"><button type="button" class="small-btn use-time-btn">Aktuelle Zeit</button><button type="button" class="small-btn secondary delete-row-btn">Löschen</button></div></td>
+      `;
+
+      if (blankSpeaker) row.classList.add('continuation-row');
+
+      const select = row.querySelector('.speaker-select');
+      if (select) {
+        select.value = speaker;
+        select.addEventListener('change', updateStepStates);
+      }
+
+      const textarea = row.querySelector('.utterance-input');
+      autoGrowTextarea(textarea);
+      textarea.addEventListener('input', () => { autoGrowTextarea(textarea); updateStepStates(); });
+
+      bindRowCommonEvents(row);
+      return appendRow(row);
+    }
+
+    function createPauseRow(time = '') {
+      const row = document.createElement('tr');
+      row.classList.add('pause-row');
+      row.innerHTML = `
+        <td><input type="text" class="time-input" value="${escapeHtml(time)}"></td>
+        <td><div class="pause-blank">&nbsp;</div></td>
+        <td><div class="pause-display"></div></td>
+        <td><div class="row-actions"><button type="button" class="small-btn use-time-btn">Aktuelle Zeit</button><button type="button" class="small-btn secondary delete-row-btn">Löschen</button></div></td>
+      `;
+      bindRowCommonEvents(row);
+      return appendRow(row);
+    }
+
+    function addRowSameSpeaker() {
+      const lastRow = dom.tableBody.lastElementChild;
+      if (lastRow && lastRow.classList.contains('pause-row')) return addRowSpeakerChange();
+      const row = createStandardRow(formatTime(getCurrentTime()), '', '', true);
+      row.querySelector('.utterance-input').focus();
+    }
+
+    function addRowSpeakerChange() {
+      const row = createStandardRow(formatTime(getCurrentTime()), '', '');
+      row.querySelector('.speaker-select').focus();
+    }
+
+    function addPauseRow() {
+      createPauseRow(formatTime(getCurrentTime()));
+    }
+
+    function setupEvents() {
+      for (let i = 1; i <= 5; i++) {
+        dom.railDots[i].addEventListener('click', () => {
+          if (getVisibleStepCount() >= i) scrollToStep(i);
+        });
+      }
+
+      dom.cancelPopupBtn.addEventListener('click', closeAnalysisPopup);
+      dom.globalPopup.addEventListener('click', (event) => { if (event.target === dom.globalPopup) closeAnalysisPopup(); });
+      dom.closeHelpPopupBtn.addEventListener('click', closeHelpPopup);
+      dom.helpPopup.addEventListener('click', (event) => { if (event.target === dom.helpPopup) closeHelpPopup(); });
+
+      document.querySelectorAll('.help-btn').forEach(btn => {
+        btn.addEventListener('click', () => openHelpPopup(btn.dataset.help, btn));
+      });
+
+      dom.loadSourceBtn.addEventListener('click', loadSelectedSource);
+
+      [dom.toggleVideoBtn, dom.toggleVideoBtnBottom].forEach(btn => btn.addEventListener('click', () => {
+        state.videoVisible = !state.videoVisible;
+        updateVideoVisibility();
+      }));
+
+      [dom.playPauseBtn, dom.playPauseBtnBottom].forEach(btn => btn.addEventListener('click', togglePlayPause));
+      dom.backBtn.addEventListener('click', () => stepBy(-getSkipAmount()));
+      dom.forwardBtn.addEventListener('click', () => stepBy(getSkipAmount()));
+      dom.backBtnBottom.addEventListener('click', () => stepBy(-(Number(dom.skipSelectBottom.value) || 1)));
+      dom.forwardBtnBottom.addEventListener('click', () => stepBy(Number(dom.skipSelectBottom.value) || 1));
+
+      [dom.insertTimeBtn, dom.insertTimeBtnBottom].forEach(btn => btn.addEventListener('click', () => {
+        const row = createStandardRow(formatTime(getCurrentTime()), '', '');
+        row.querySelector('.speaker-select').focus();
+      }));
+
+      dom.skipSelect.addEventListener('change', () => { dom.skipSelectBottom.value = dom.skipSelect.value; });
+      dom.skipSelectBottom.addEventListener('change', () => { dom.skipSelect.value = dom.skipSelectBottom.value; });
+
+      dom.speedSelect.addEventListener('change', () => {
+        dom.speedSelectBottom.value = dom.speedSelect.value;
+        setPlaybackRate(Number(dom.speedSelect.value));
+      });
+      dom.speedSelectBottom.addEventListener('change', () => {
+        dom.speedSelect.value = dom.speedSelectBottom.value;
+        setPlaybackRate(Number(dom.speedSelectBottom.value));
+      });
+
+      metaInputs.forEach(el => el.addEventListener('input', updateStepStates));
+
+      dom.addSpeakerBtn.addEventListener('click', addSpeaker);
+      dom.speakerInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          addSpeaker();
+        }
+      });
+
+      dom.addSpeakerChangeBtn.addEventListener('click', addRowSpeakerChange);
+      dom.addSameSpeakerBtn.addEventListener('click', addRowSameSpeaker);
+      dom.addPauseBtn.addEventListener('click', addPauseRow);
+
+      dom.exportTxtBtn.addEventListener('click', exportTxt);
+      dom.exportCsvBtn.addEventListener('click', exportCsv);
+
+      dom.copyTranscriptBtn.addEventListener('click', async () => {
+        const ok = await copyTextToClipboard(buildClipboardTextWithPrompt(buildDefaultAnalysisPrompt()));
+        setSourceStatus(ok ? 'Transkript wurde in die Zwischenablage kopiert.' : 'Kopieren in die Zwischenablage hat nicht funktioniert.');
+        markStep4Completed();
+      });
+
+      dom.analyzeChatgptBtn.addEventListener('click', () => {
+        openAnalysisPopup(buildDefaultAnalysisPrompt(), dom.analyzeChatgptBtn);
+      });
+
+      dom.continueChatgptBtn.addEventListener('click', async () => {
+        const ok = await copyTextToClipboard(buildClipboardTextWithPrompt(dom.popupPromptEditor.value.trim()));
+        window.open('https://chatgpt.com/', '_blank', 'noopener');
+        setSourceStatus(ok ? 'Transkript wurde kopiert. ChatGPT wurde in einem neuen Tab geöffnet.' : 'ChatGPT wurde geöffnet. Das Kopieren in die Zwischenablage hat nicht funktioniert.');
+        closeAnalysisPopup();
+      });
+
+      dom.localVideo.addEventListener('timeupdate', updateTimeDisplay);
+      dom.localVideo.addEventListener('loadedmetadata', () => {
+        updateTimeDisplay();
+        setPlaybackRate(Number(dom.speedSelect.value));
+        if (!dom.metaLength.value.trim() && isFinite(dom.localVideo.duration)) {
+          dom.metaLength.value = formatTime(dom.localVideo.duration);
+        }
+        requestRailSync();
+      });
+
+      window.addEventListener('load', requestRailSync);
+      window.addEventListener('resize', requestRailSync);
+    }
+
+    function startLayoutObservers() {
+      const observedElements = [dom.mainContent, ...Object.values(dom.steps), dom.videoShell, dom.localVideo, dom.youtubeContainer, dom.tableBody, dom.tableScrollWrap];
+
+      if ('ResizeObserver' in window) {
+        state.resizeObserver = new ResizeObserver(() => requestRailSync());
+        observedElements.forEach(el => { if (el) state.resizeObserver.observe(el); });
+      }
+
+      if ('MutationObserver' in window) {
+        state.mutationObserver = new MutationObserver(() => requestRailSync());
+        state.mutationObserver.observe(dom.mainContent, { childList: true, subtree: true, attributes: true });
+      }
+    }
+
+
+
+    function updateResponsiveDeviceClass() {
+      const ua = navigator.userAgent || '';
+      const maxTouch = navigator.maxTouchPoints || 0;
+      const isTouch = ('ontouchstart' in window) || maxTouch > 0;
+      const isPhoneLike = isTouch && Math.max(window.innerWidth, window.innerHeight) <= 900;
+      const isIPhone = /iPhone/i.test(ua);
+      const isIPad = /iPad/i.test(ua) || ((navigator.platform || '') === 'MacIntel' && maxTouch > 1);
+      const isAndroidTablet = /Android/i.test(ua) && !/Mobile/i.test(ua);
+      const isTabletWidth = Math.min(window.innerWidth, window.innerHeight) >= 700 && Math.max(window.innerWidth, window.innerHeight) <= 1400;
+
+      document.documentElement.classList.toggle('device-phone', isIPhone || isPhoneLike);
+      document.documentElement.classList.toggle(
+        'device-tablet',
+        isIPad || isAndroidTablet || (isTouch && isTabletWidth && !(isIPhone || isPhoneLike))
+      );
+    }
+
+    function refreshDeviceLayout() {
+      requestRailSync();
+    }
+
+    window.addEventListener('orientationchange', () => { updateResponsiveDeviceClass(); refreshDeviceLayout(); });
+    window.addEventListener('resize', () => { updateResponsiveDeviceClass(); refreshDeviceLayout(); });
+
+    function initialize() {
+      dom.steps[4].dataset.completed = 'false';
+      updateVideoVisibility();
+      renderSpeakerTags();
+      createStandardRow('', '', '');
+      setupEvents();
+      startLayoutObservers();
+      updateWorkflow();
+      [100, 400, 900].forEach(ms => setTimeout(requestRailSync, ms));
+    }
+
+    initialize();
+  </script>
+</body>
+</html>
