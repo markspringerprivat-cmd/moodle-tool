@@ -554,13 +554,7 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.25);
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding-top: 12px;
-      padding-left: 16px;
-      padding-right: 16px;
-      padding-bottom: 16px;
+      display: block;
       z-index: 9999;
     }
 
@@ -571,9 +565,11 @@
 
     .global-popup-box,
     .help-popup-box {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
       background: #ffffff;
       border-radius: 16px;
-      width: min(760px, calc(100% - 32px));
       max-height: calc(100vh - 24px);
       overflow-y: auto;
       box-shadow: 0 12px 34px rgba(0, 0, 0, 0.2);
@@ -585,12 +581,13 @@
     }
 
     .global-popup-box {
+      width: min(760px, calc(100% - 32px));
       padding: 24px 22px;
     }
 
     .help-popup-box {
-      padding: 20px 20px 16px 20px;
       width: min(520px, calc(100% - 32px));
+      padding: 20px 20px 16px 20px;
     }
 
     .popup-title {
@@ -698,7 +695,7 @@
   </style>
 </head>
 <body>
-  <div class="app" id="appTop">
+  <div class="app">
     <h1>Transkript-Editor</h1>
     <p class="intro">
       Video laden oder YouTube-Link einfügen, fein navigieren und das Transkript Zeile für Zeile erfassen.
@@ -973,8 +970,6 @@
   </div>
 
   <script>
-    const appTop = document.getElementById('appTop');
-
     const videoInput = document.getElementById('videoInput');
     const youtubeUrl = document.getElementById('youtubeUrl');
     const loadSourceBtn = document.getElementById('loadSourceBtn');
@@ -1029,11 +1024,13 @@
     const tableBody = document.getElementById('tableBody');
 
     const globalPopup = document.getElementById('globalPopup');
+    const globalPopupBox = document.querySelector('.global-popup-box');
     const popupPromptEditor = document.getElementById('popupPromptEditor');
     const cancelPopupBtn = document.getElementById('cancelPopupBtn');
     const continueChatgptBtn = document.getElementById('continueChatgptBtn');
 
     const helpPopup = document.getElementById('helpPopup');
+    const helpPopupBox = document.querySelector('.help-popup-box');
     const helpPopupTitle = document.getElementById('helpPopupTitle');
     const helpPopupText = document.getElementById('helpPopupText');
     const closeHelpPopupBtn = document.getElementById('closeHelpPopupBtn');
@@ -1139,9 +1136,28 @@ Prüfe den Analyseauftrag kurz, bevor du weitergehst.`
       }
     };
 
-    function jumpUserToTop() {
-      appTop.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    function positionPopupAtButton(popupBox, buttonEl) {
+      const rect = buttonEl.getBoundingClientRect();
+
+      popupBox.style.visibility = 'hidden';
+      popupBox.style.top = '12px';
+      popupBox.style.left = '50%';
+      popupBox.style.transform = 'translateX(-50%)';
+
+      requestAnimationFrame(() => {
+        const boxHeight = popupBox.offsetHeight;
+        const margin = 12;
+
+        let top = rect.bottom - boxHeight;
+
+        if (top < margin) top = margin;
+        if (top + boxHeight > window.innerHeight - margin) {
+          top = Math.max(margin, window.innerHeight - boxHeight - margin);
+        }
+
+        popupBox.style.top = `${top}px`;
+        popupBox.style.visibility = 'visible';
+      });
     }
 
     function scrollToStep(stepNumber) {
@@ -1357,23 +1373,24 @@ Prüfe den Analyseauftrag kurz, bevor du weitergehst.`
       updateWorkflow();
     }
 
-    function openAnalysisPopup(prefilledPrompt) {
-      jumpUserToTop();
+    function openAnalysisPopup(prefilledPrompt, triggerBtn) {
       popupPromptEditor.value = prefilledPrompt;
       globalPopup.classList.remove('hidden');
+      positionPopupAtButton(globalPopupBox, triggerBtn);
     }
 
     function closeAnalysisPopup() {
       globalPopup.classList.add('hidden');
     }
 
-    function openHelpPopup(stepKey) {
+    function openHelpPopup(stepKey, triggerBtn) {
       const help = helpTexts[stepKey];
       if (!help) return;
-      jumpUserToTop();
+
       helpPopupTitle.textContent = help.title;
       helpPopupText.textContent = help.text;
       helpPopup.classList.remove('hidden');
+      positionPopupAtButton(helpPopupBox, triggerBtn);
     }
 
     function closeHelpPopup() {
@@ -1392,7 +1409,7 @@ Prüfe den Analyseauftrag kurz, bevor du weitergehst.`
 
     document.querySelectorAll('.help-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        openHelpPopup(btn.dataset.help);
+        openHelpPopup(btn.dataset.help, btn);
       });
     });
 
@@ -2192,7 +2209,7 @@ Prüfe den Analyseauftrag kurz, bevor du weitergehst.`
     });
 
     analyzeChatgptBtn.addEventListener('click', () => {
-      openAnalysisPopup(buildDefaultAnalysisPrompt());
+      openAnalysisPopup(buildDefaultAnalysisPrompt(), analyzeChatgptBtn);
     });
 
     continueChatgptBtn.addEventListener('click', async () => {
