@@ -525,25 +525,54 @@
       border: 1px solid transparent;
     }
 
-    .global-popup {
+    .card-footer-help {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0 16px 14px 16px;
+    }
+
+    .help-btn {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 999px;
+      background: #eef4ff;
+      color: #2d6cdf;
+      border: 1px solid #cfdcff;
+      font-weight: bold;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .help-btn:hover {
+      background: #e3edff;
+    }
+
+    .global-popup,
+    .help-popup {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.25);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      padding: 16px;
+      padding-top: 12px;
+      padding-left: 16px;
+      padding-right: 16px;
+      padding-bottom: 16px;
       z-index: 9999;
     }
 
-    .global-popup.hidden {
+    .global-popup.hidden,
+    .help-popup.hidden {
       display: none !important;
     }
 
-    .global-popup-box {
+    .global-popup-box,
+    .help-popup-box {
       background: #ffffff;
       border-radius: 16px;
-      padding: 24px 22px;
       width: min(760px, calc(100% - 32px));
       max-height: calc(100vh - 24px);
       overflow-y: auto;
@@ -552,6 +581,16 @@
       flex-direction: column;
       gap: 16px;
       text-align: left;
+      box-sizing: border-box;
+    }
+
+    .global-popup-box {
+      padding: 24px 22px;
+    }
+
+    .help-popup-box {
+      padding: 20px 20px 16px 20px;
+      width: min(520px, calc(100% - 32px));
     }
 
     .popup-title {
@@ -584,11 +623,25 @@
       line-height: 1.45;
     }
 
-    .popup-actions {
+    .popup-actions,
+    .help-popup-actions {
       display: flex;
       gap: 10px;
       justify-content: center;
       flex-wrap: wrap;
+    }
+
+    .help-popup-title {
+      margin: 0 0 10px 0;
+      font-size: 19px;
+      font-weight: bold;
+    }
+
+    .help-popup-text {
+      line-height: 1.55;
+      color: #333;
+      font-size: 15px;
+      white-space: pre-line;
     }
 
     @media (max-width: 1200px) {
@@ -645,7 +698,7 @@
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="app" id="appTop">
     <h1>Transkript-Editor</h1>
     <p class="intro">
       Video laden oder YouTube-Link einfügen, fein navigieren und das Transkript Zeile für Zeile erfassen.
@@ -709,6 +762,9 @@
               </div>
               <div id="speakerTags" class="speaker-tags"></div>
             </div>
+          </div>
+          <div class="card-footer-help">
+            <button type="button" class="help-btn" data-help="step1">?</button>
           </div>
         </div>
 
@@ -819,6 +875,9 @@
               </div>
             </div>
           </div>
+          <div class="card-footer-help">
+            <button type="button" class="help-btn" data-help="step2">?</button>
+          </div>
         </div>
 
         <div class="section card is-hidden is-collapsed" id="step3">
@@ -846,6 +905,9 @@
               <button id="addPauseBtn" type="button" class="table-add-row">+ Pause</button>
             </div>
           </div>
+          <div class="card-footer-help">
+            <button type="button" class="help-btn" data-help="step3">?</button>
+          </div>
         </div>
 
         <div class="section card is-hidden is-collapsed" id="step4">
@@ -859,6 +921,9 @@
               <button id="copyTranscriptBtn" type="button" class="secondary">In Zwischenablage kopieren</button>
             </div>
           </div>
+          <div class="card-footer-help">
+            <button type="button" class="help-btn" data-help="step4">?</button>
+          </div>
         </div>
 
         <div class="section card is-hidden is-collapsed" id="step5">
@@ -869,6 +934,9 @@
             <div class="top-actions">
               <button id="analyzeChatgptBtn" type="button">Fertiges Transkript mit ChatGPT analysieren lassen</button>
             </div>
+          </div>
+          <div class="card-footer-help">
+            <button type="button" class="help-btn" data-help="step5">?</button>
           </div>
         </div>
       </main>
@@ -894,7 +962,19 @@
     </div>
   </div>
 
+  <div id="helpPopup" class="help-popup hidden">
+    <div class="help-popup-box">
+      <h3 id="helpPopupTitle" class="help-popup-title">Hilfe</h3>
+      <div id="helpPopupText" class="help-popup-text"></div>
+      <div class="help-popup-actions">
+        <button id="closeHelpPopupBtn" type="button">Schließen</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    const appTop = document.getElementById('appTop');
+
     const videoInput = document.getElementById('videoInput');
     const youtubeUrl = document.getElementById('youtubeUrl');
     const loadSourceBtn = document.getElementById('loadSourceBtn');
@@ -953,6 +1033,11 @@
     const cancelPopupBtn = document.getElementById('cancelPopupBtn');
     const continueChatgptBtn = document.getElementById('continueChatgptBtn');
 
+    const helpPopup = document.getElementById('helpPopup');
+    const helpPopupTitle = document.getElementById('helpPopupTitle');
+    const helpPopupText = document.getElementById('helpPopupText');
+    const closeHelpPopupBtn = document.getElementById('closeHelpPopupBtn');
+
     const mainContent = document.getElementById('mainContent');
     const progressRail = document.getElementById('progressRail');
     const railActive = document.getElementById('railActive');
@@ -994,6 +1079,70 @@
       4: railDot4,
       5: railDot5
     };
+
+    const helpTexts = {
+      step1: {
+        title: 'Hilfe zu Schritt 1',
+        text: `Hier trägst du die wichtigsten Rahmendaten ein.
+
+Unterrichtsfach, Klasse und Unterrichtsthema geben den Kontext vor.
+Mit „Sprecher hinzufügen“ legst du alle Personen an, die später im Transkript ausgewählt werden können.
+
+Tipp:
+Lege zuerst alle Sprecher an, bevor du mit dem Transkript beginnst.`
+      },
+      step2: {
+        title: 'Hilfe zu Schritt 2',
+        text: `Hier lädst du das Material, mit dem du arbeiten willst.
+
+Du kannst entweder eine lokale Videodatei wählen oder einen YouTube-Link einfügen.
+Danach kannst du das Video abspielen, pausieren, vor- und zurückspringen und die aktuelle Zeit übernehmen.
+
+Tipp:
+Nutze eine kleine Sprungweite, wenn du sehr genau transkribieren möchtest.`
+      },
+      step3: {
+        title: 'Hilfe zu Schritt 3',
+        text: `Hier erstellst du das eigentliche Transkript.
+
+Jede Zeile enthält Zeit, Sprecher und Äußerung.
+„Sprecherwechsel“ erstellt eine neue Zeile mit neuem Sprecher.
+„Gleicher Sprecher“ erstellt eine Fortsetzung ohne erneute Sprecherangabe.
+„Pause“ erstellt eine Pausenzeile.
+
+Tipp:
+Übernimm zuerst die Zeit und trage dann Sprecher und Äußerung ein.`
+      },
+      step4: {
+        title: 'Hilfe zu Schritt 4',
+        text: `Hier sicherst du dein bisheriges Ergebnis.
+
+TXT speichern:
+für eine gut lesbare Textversion.
+
+CSV speichern:
+für die Weiterarbeit in Excel oder Tabellenprogrammen.
+
+In Zwischenablage kopieren:
+um das Transkript schnell an anderer Stelle einzufügen.`
+      },
+      step5: {
+        title: 'Hilfe zu Schritt 5',
+        text: `Hier kannst du das fertige Transkript für eine Analyse mit ChatGPT vorbereiten.
+
+Beim Klick wird ein Popup geöffnet.
+Dort kannst du den Analyseauftrag noch anpassen.
+Danach wird der Text kopiert und ChatGPT in einem neuen Tab geöffnet.
+
+Tipp:
+Prüfe den Analyseauftrag kurz, bevor du weitergehst.`
+      }
+    };
+
+    function jumpUserToTop() {
+      appTop.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     function scrollToStep(stepNumber) {
       const el = stepElements[stepNumber];
@@ -1209,6 +1358,7 @@
     }
 
     function openAnalysisPopup(prefilledPrompt) {
+      jumpUserToTop();
       popupPromptEditor.value = prefilledPrompt;
       globalPopup.classList.remove('hidden');
     }
@@ -1217,9 +1367,33 @@
       globalPopup.classList.add('hidden');
     }
 
+    function openHelpPopup(stepKey) {
+      const help = helpTexts[stepKey];
+      if (!help) return;
+      jumpUserToTop();
+      helpPopupTitle.textContent = help.title;
+      helpPopupText.textContent = help.text;
+      helpPopup.classList.remove('hidden');
+    }
+
+    function closeHelpPopup() {
+      helpPopup.classList.add('hidden');
+    }
+
     cancelPopupBtn.addEventListener('click', closeAnalysisPopup);
     globalPopup.addEventListener('click', (event) => {
       if (event.target === globalPopup) closeAnalysisPopup();
+    });
+
+    closeHelpPopupBtn.addEventListener('click', closeHelpPopup);
+    helpPopup.addEventListener('click', (event) => {
+      if (event.target === helpPopup) closeHelpPopup();
+    });
+
+    document.querySelectorAll('.help-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openHelpPopup(btn.dataset.help);
+      });
     });
 
     function formatTime(seconds) {
